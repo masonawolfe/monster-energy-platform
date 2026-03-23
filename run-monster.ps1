@@ -146,43 +146,50 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Log "  Nothing new to commit." "Gray"
   }
 
-  # Push to GitHub if gh CLI is available
-  $ghCmd = Get-Command gh -ErrorAction SilentlyContinue
-  if ($ghCmd) {
-    Log "  gh CLI found - creating/pushing GitHub repo..." "Gray"
-    # Create repo and push (--source=. sets cwd as source)
+  # Install gh CLI if missing
+  if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+    Log "  gh CLI not found - installing via winget..." "Yellow"
+    winget install GitHub.cli --silent --accept-source-agreements --accept-package-agreements | Out-Null
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+  }
+
+  if (Get-Command gh -ErrorAction SilentlyContinue) {
+    # Ensure gh is authenticated
+    $ghAuth = gh auth status 2>&1
+    if ($LASTEXITCODE -ne 0) {
+      Log "  Logging in to GitHub (browser will open)..." "Yellow"
+      gh auth login --web --git-protocol https
+    }
+    Log "  Creating and pushing GitHub repo..." "Gray"
     gh repo create monster-energy-platform --public --source="$Root" --remote=origin --push 2>&1 | ForEach-Object { Log "    $_" "Gray" }
     if ($LASTEXITCODE -eq 0) {
       $repoUrl = gh repo view monster-energy-platform --json url -q ".url" 2>$null
-      Log "  GitHub repo: $repoUrl" "Green"
+      Log "  GitHub: $repoUrl" "Green"
     } else {
-      Log "  GitHub push failed - may already exist or need auth. Continuing..." "Yellow"
+      Log "  GitHub push failed (repo may already exist). Continuing to Vercel..." "Yellow"
     }
   } else {
-    Log "  gh CLI not found - skipping GitHub push." "Yellow"
-    Log "  To push manually: gh repo create monster-energy-platform --public --source=. --push" "Gray"
+    Log "  gh CLI install failed - skipping GitHub push." "Yellow"
   }
 }
 
 # ── Step 5: Deploy to Vercel ──────────────────────────────────────────────────
 Log ""
 Log "[5/5] Deploying to Vercel..." "Cyan"
-Log "  (First run: a browser tab will open to log in to Vercel)" "Gray"
+Log "  A browser tab will open - log in to Vercel, then come back here." "Yellow"
 
 Set-Location $Root
-npx vercel --yes --prod
+npx vercel --prod
 if ($LASTEXITCODE -eq 0) {
-  Log "  Vercel deployment complete." "Green"
+  $vercelUrl = (Get-Content "$Root\.vercel\project.json" -ErrorAction SilentlyContinue | ConvertFrom-Json).projectUrl
+  Log "  Deployed to Vercel." "Green"
 } else {
-  Log "  Vercel deploy failed or was cancelled. Check above for details." "Yellow"
+  Log "  Vercel deploy failed. Check above for details." "Red"
 }
 
-# ── Done: start local dev ─────────────────────────────────────────────────────
+# ── Done ──────────────────────────────────────────────────────────────────────
 Log ""
-Log "All done. Starting local dev at http://localhost:3000" "Green"
-Log "Press Ctrl+C in this window to stop the server." "Gray"
+Log "=== All done! ===" "Green"
+Log "  Local dev: run 'npm run dev' in $Root" "Gray"
 Log ""
-
-Start-Sleep -Seconds 2
-Start-Process "http://localhost:3000"
-npm run dev
+Read-Host "Press Enter to close"

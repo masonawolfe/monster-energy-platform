@@ -27,10 +27,11 @@ try {
   # Copy .txt to a temp .ps1, prepending a $root override so files land in $AppDir
   $tempPs1 = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "monster-setup-$([System.Guid]::NewGuid()).ps1")
   $override = "`$root = '$Root'"
-  $setupBody = Get-Content "$AppDir\monster-claude-code-setup.txt" -Raw -ErrorAction Stop
-  # Strip any existing $root assignment from the setup script and inject ours at the top
+  # Read as UTF-8 to preserve em dashes, curly quotes, checkmarks, etc.
+  $setupBody = [System.IO.File]::ReadAllText("$AppDir\monster-claude-code-setup.txt", [System.Text.UTF8Encoding]::new($false))
   $setupBody = $setupBody -replace '(?m)^\$root\s*=.*$', ''
-  [System.IO.File]::WriteAllText($tempPs1, "$override`n$setupBody", [System.Text.UTF8Encoding]::new($false))
+  # Write with BOM so PowerShell -File reads it as UTF-8
+  [System.IO.File]::WriteAllText($tempPs1, "$override`n$setupBody", [System.Text.UTF8Encoding]::new($true))
   & powershell.exe -ExecutionPolicy Bypass -File $tempPs1
   Remove-Item $tempPs1 -ErrorAction SilentlyContinue
   Log "  Project files written to: $Root" "Gray"
@@ -73,6 +74,21 @@ try {
   } else {
     [System.IO.File]::WriteAllText($pageFile, $patched, [System.Text.UTF8Encoding]::new($false))
     Log "  Demo mode applied." "Gray"
+  }
+
+  # Add password gate (culture123)
+  $pg = [System.IO.File]::ReadAllText($pageFile)
+  if ($pg -notmatch 'culture123') {
+    $oldFn = 'export default function App() {
+  const [step,setStep]=useState(0);'
+    $newFn = 'export default function App() {
+  const [authed,setAuthed]=useState(()=>typeof window!=="undefined"&&localStorage.getItem("m_auth")==="1");
+  const [pw,setPw]=useState("");const [pwErr,setPwErr]=useState(false);
+  if(!authed)return(<div style={{background:"#000",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Arial Black,Arial,sans-serif"}}><div style={{width:"100%",maxWidth:360,padding:"2.5rem",border:"1px solid #1f1f1f",borderRadius:8,background:"#0a0a0a"}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:"2rem"}}><svg width="22" height="22" viewBox="0 0 28 28" fill="none"><path d="M8 4 L13 24 L15 16 L20 24 L16 4 Z" fill="#39FF14"/></svg><div><div style={{fontSize:11,fontWeight:900,color:"#39FF14",letterSpacing:"0.12em",textTransform:"uppercase"}}>Monster Energy</div><div style={{fontSize:9,color:"#888",letterSpacing:"0.08em",textTransform:"uppercase"}}>Commercialization Platform</div></div></div><input autoFocus type="password" placeholder="Enter password" value={pw} onChange={e=>{setPw(e.target.value);setPwErr(false);}} onKeyDown={e=>{if(e.key==="Enter"){if(pw==="culture123"){localStorage.setItem("m_auth","1");setAuthed(true);}else setPwErr(true);}}} style={{width:"100%",background:"#111",border:"1px solid "+(pwErr?"#ff4444":"#1f1f1f"),borderRadius:4,padding:"10px 12px",fontSize:13,color:"#e8e8e8",outline:"none",marginBottom:8,boxSizing:"border-box"}}/>{pwErr&&<div style={{fontSize:11,color:"#ff4444",marginBottom:8}}>Incorrect password.</div>}<button onClick={()=>{if(pw==="culture123"){localStorage.setItem("m_auth","1");setAuthed(true);}else setPwErr(true);}} style={{width:"100%",padding:"10px",background:"#39FF14",color:"#000",border:"none",borderRadius:4,fontSize:12,fontWeight:900,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>Enter</button></div></div>);
+  const [step,setStep]=useState(0);'
+    $pg = $pg.Replace($oldFn, $newFn)
+    [System.IO.File]::WriteAllText($pageFile, $pg, [System.Text.UTF8Encoding]::new($false))
+    Log "  Password gate added (culture123)." "Gray"
   }
 } catch {
   Log "ERROR patching page.tsx: $_" "Red"
@@ -165,14 +181,17 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
       Log "  Logging in to GitHub (browser will open)..." "Yellow"
       gh auth login --web --git-protocol https
     }
-    Log "  Creating and pushing GitHub repo..." "Gray"
-    gh repo create monster-energy-platform --public --source="$Root" --remote=origin --push 2>&1 | ForEach-Object { Log "    $_" "Gray" }
-    if ($LASTEXITCODE -eq 0) {
-      $repoUrl = gh repo view monster-energy-platform --json url -q ".url" 2>$null
-      Log "  GitHub: $repoUrl" "Green"
+    # Check if remote origin already set
+    $remoteUrl = git remote get-url origin 2>$null
+    if ($remoteUrl) {
+      Log "  Pushing to existing repo: $remoteUrl" "Gray"
+      git push origin main 2>&1 | ForEach-Object { Log "    $_" "Gray" }
     } else {
-      Log "  GitHub push failed (repo may already exist). Continuing to Vercel..." "Yellow"
+      Log "  Creating GitHub repo..." "Gray"
+      gh repo create monster-energy-platform --public --source="$Root" --remote=origin --push 2>&1 | ForEach-Object { Log "    $_" "Gray" }
     }
+    $repoUrl = git remote get-url origin 2>$null
+    if ($repoUrl) { Log "  GitHub: $repoUrl" "Green" }
   } else {
     Log "  gh CLI install failed - skipping GitHub push." "Yellow"
   }

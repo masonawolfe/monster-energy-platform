@@ -1,10 +1,10 @@
-# NEXT_ACTIONS.md Ã¢â‚¬â€ Monster Platform Backlog
+# NEXT_ACTIONS.md — Monster Platform Backlog
 
-## DEMO TODAY Ã¢â‚¬â€ DO NOT CHANGE ANYTHING IN page.tsx
+## DEMO TODAY — DO NOT CHANGE ANYTHING IN page.tsx
 
 ---
 
-## SPRINT 0 Ã¢â‚¬â€ QA bug fixes (after demo)
+## SPRINT 0 — QA bug fixes (after demo)
 
 | ID    | Sev  | Description                                   | Fix |
 |-------|------|-----------------------------------------------|-----|
@@ -21,7 +21,7 @@
 
 ---
 
-## SPRINT 1 Ã¢â‚¬â€ Move API calls server-side (security)
+## SPRINT 1 — Move API calls server-side (security)
 
 - [ ] Implement src/app/api/brief/route.ts (stub already exists)
 - [ ] Implement src/app/api/chat/route.ts (stub already exists)  
@@ -31,7 +31,7 @@
 
 ---
 
-## SPRINT 2 Ã¢â‚¬â€ Workfront Planning integration
+## SPRINT 2 — Workfront Planning integration
 
 - [ ] Build .doc export function using string concatenation (NO template literals)
 - [ ] Add wf_* fields to brief generation prompt
@@ -42,7 +42,7 @@
 
 ---
 
-## SPRINT 3 Ã¢â‚¬â€ Backend & persistence
+## SPRINT 3 — Backend & persistence
 
 - [ ] Plan save/load (SQLite local, Turso for prod)
 - [ ] Authentication (NextAuth.js)
@@ -51,7 +51,7 @@
 
 ---
 
-## SPRINT 4 Ã¢â‚¬â€ Data integrations
+## SPRINT 4 — Data integrations
 
 - [ ] Circana / Nielsen / Numerator live data
 - [ ] Walmart Luminate, Kroger 84.51 retailer portals
@@ -60,9 +60,9 @@
 
 ---
 
-## SPRINT 5 Ã¢â‚¬â€ Strategic platform
+## SPRINT 5 — Strategic platform
 
 - [ ] Portfolio optimizer (budget allocation to max blended ROI)
-- [ ] Consumer cohort tracker (event Ã¢â€ â€™ trial Ã¢â€ â€™ repeat)
+- [ ] Consumer cohort tracker (event → trial → repeat)
 - [ ] Joint Business Planning (JBP) module
 - [ ] Community-sourced event suggestion engine

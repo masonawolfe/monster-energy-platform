@@ -1,4 +1,4 @@
-# Monster Energy Ã¢â‚¬â€ E2E Commercialization Platform (v6)
+# Monster Energy — E2E Commercialization Platform (v6)
 
 Community-first commercialization planning tool for Monster Energy.
 Build With The Culture. Not At It.

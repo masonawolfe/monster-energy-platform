@@ -1,7 +1,7 @@
-# CLAUDE.md Ã¢â‚¬â€ Monster Energy E2E Commercialization Platform
+# CLAUDE.md — Monster Energy E2E Commercialization Platform
 
-## IMPORTANT Ã¢â‚¬â€ READ FIRST
-The canonical demo code is in src/app/page.tsx. This is v6 Ã¢â‚¬â€ the stable, working build.
+## IMPORTANT — READ FIRST
+The canonical demo code is in src/app/page.tsx. This is v6 — the stable, working build.
 DO NOT modify the brief generation logic, the API call structure, or the prompt format.
 The brief generation works. Do not touch it.
 
@@ -18,12 +18,12 @@ community-first commercialization plans. 7-step flow:
 
 ## Tech Stack
 - Framework: Next.js 14 (App Router)
-- Language: JavaScript (page.tsx uses JS syntax with allowJs:true Ã¢â‚¬â€ do not add TS types to page.tsx)
-- AI: Anthropic Claude API Ã¢â‚¬â€ currently called DIRECTLY from the browser in page.tsx
-  (this is intentional for the demo Ã¢â‚¬â€ the artifact sandbox proxy handles auth)
+- Language: JavaScript (page.tsx uses JS syntax with allowJs:true — do not add TS types to page.tsx)
+- AI: Anthropic Claude API — currently called DIRECTLY from the browser in page.tsx
+  (this is intentional for the demo — the artifact sandbox proxy handles auth)
 - State: React useState/useEffect only
 
-## CRITICAL Ã¢â‚¬â€ API Call Architecture in v6
+## CRITICAL — API Call Architecture in v6
 The generateBrief() and sendChat() functions in page.tsx call the Anthropic API directly:
   fetch("https://api.anthropic.com/v1/messages", ...)
 This works in the Claude.ai artifact sandbox because Anthropic proxies the auth.
@@ -32,7 +32,7 @@ and add ANTHROPIC_API_KEY from .env.local. The API route stubs are already scaff
 in src/app/api/brief/route.ts and src/app/api/chat/route.ts.
 For the demo today: leave page.tsx exactly as-is.
 
-## Brief Generation Ã¢â‚¬â€ DO NOT CHANGE
+## Brief Generation — DO NOT CHANGE
 The prompt in generateBrief() is:
   "You are a brand strategist for Monster Energy. Return ONLY valid JSON, no markdown:
   {headline, strategy_statement, events_team[], creative_team[], partnerships_team[],
@@ -57,12 +57,12 @@ max_tokens is 1200. Model is claude-sonnet-4-20250514.
 - Trade spend: TPR 35% / Display 30% / Digital 20% / Scan-down 15% (Scenario B recommended)
 
 ## Segments
-1. Gen Z Female (18-26) Ã¢â‚¬â€ FLRT Launch Ã¢â‚¬â€ Coachella, NCAA, Roller Derby, Zine Fests
-2. Gen Z Male (18-26) Ã¢â‚¬â€ Core Growth Ã¢â‚¬â€ EVO Championship, ComplexCon
-3. Hispanic Youth (16-28) Ã¢â‚¬â€ Fastest Growing Ã¢â‚¬â€ Lowrider Super Show, Liga MX Fan Fests
-4. Gaming Community (16-32) Ã¢â‚¬â€ At Risk Ã¢â‚¬â€ PAX East/West/Aus
-5. Millennial Female (27-40) Ã¢â‚¬â€ FLRT Expand Ã¢â‚¬â€ Pilates & Studio Events
-6. Millennial Male (27-40) Ã¢â‚¬â€ Retain Ã¢â‚¬â€ Overland Expo
+1. Gen Z Female (18-26) — FLRT Launch — Coachella, NCAA, Roller Derby, Zine Fests
+2. Gen Z Male (18-26) — Core Growth — EVO Championship, ComplexCon
+3. Hispanic Youth (16-28) — Fastest Growing — Lowrider Super Show, Liga MX Fan Fests
+4. Gaming Community (16-32) — At Risk — PAX East/West/Aus
+5. Millennial Female (27-40) — FLRT Expand — Pilates & Studio Events
+6. Millennial Male (27-40) — Retain — Overland Expo
 
 ## Features in v6 (all working)
 - Brand guardrail filter (must/must-not per segment)
@@ -83,7 +83,7 @@ max_tokens is 1200. Model is claude-sonnet-4-20250514.
 ## What Claude Code should do with this project
 1. Run: npm install
 2. Run: npm run dev
-3. Open http://localhost:3000 Ã¢â‚¬â€ the app should load immediately
+3. Open http://localhost:3000 — the app should load immediately
 4. To move API calls server-side (P1): implement src/app/api/brief/route.ts
    and src/app/api/chat/route.ts, then update the fetch URLs in page.tsx
 5. See NEXT_ACTIONS.md for full backlog

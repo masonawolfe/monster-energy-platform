@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-// Server-side only Ã¢â‚¬â€ used by API routes in Sprint 1
+// Server-side only — used by API routes in Sprint 1
 export const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });

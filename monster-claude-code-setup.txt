@@ -1,0 +1,660 @@
+# ============================================================
+#  Monster Energy E2E Commercialization Platform
+#  Claude Code Setup Script — v6 CANONICAL DEMO BUILD
+#  Run in PowerShell — writes all project files to disk
+# ============================================================
+
+$root = "C:\Users\mason.a.wolfe\Downloads\Monster_Platform"
+
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Green
+Write-Host " Monster Energy Commercialization Platform" -ForegroundColor Green
+Write-Host " Claude Code Project Setup — v6 Canonical" -ForegroundColor Green
+Write-Host "========================================" -ForegroundColor Green
+Write-Host ""
+
+New-Item -ItemType Directory -Force -Path $root | Out-Null
+New-Item -ItemType Directory -Force -Path "$root\src\app\api\brief" | Out-Null
+New-Item -ItemType Directory -Force -Path "$root\src\app\api\chat" | Out-Null
+New-Item -ItemType Directory -Force -Path "$root\src\components" | Out-Null
+New-Item -ItemType Directory -Force -Path "$root\src\lib" | Out-Null
+New-Item -ItemType Directory -Force -Path "$root\src\types" | Out-Null
+
+function Write-File($path, $content) {
+  [System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))
+  Write-Host "  wrote $path" -ForegroundColor Gray
+}
+
+# ── .gitignore ────────────────────────────────────────────────────────────────
+Write-File "$root\.gitignore" @'
+node_modules/
+.next/
+out/
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+.DS_Store
+*.pem
+.vercel
+'@
+
+# ── .env.example ──────────────────────────────────────────────────────────────
+Write-File "$root\.env.example" @'
+# Copy to .env.local — never commit .env.local
+ANTHROPIC_API_KEY=sk-ant-...
+NEXT_PUBLIC_APP_ENV=development
+'@
+
+# ── package.json ──────────────────────────────────────────────────────────────
+Write-File "$root\package.json" @'
+{
+  "name": "monster-commercialization-platform",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "next": "14.2.3",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.3",
+    "typescript": "^5"
+  }
+}
+'@
+
+# ── tsconfig.json ─────────────────────────────────────────────────────────────
+Write-File "$root\tsconfig.json" @'
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+'@
+
+# ── README.md ─────────────────────────────────────────────────────────────────
+Write-File "$root\README.md" @'
+# Monster Energy — E2E Commercialization Platform (v6)
+
+Community-first commercialization planning tool for Monster Energy.
+Build With The Culture. Not At It.
+
+## Quick Start
+```
+npm install
+cp .env.example .env.local
+# Add your ANTHROPIC_API_KEY to .env.local
+npm run dev
+# Open http://localhost:3000
+```
+
+See CLAUDE.md for full project context.
+See NEXT_ACTIONS.md for the feature backlog and QA bug list.
+'@
+
+# ── CLAUDE.md ─────────────────────────────────────────────────────────────────
+Write-File "$root\CLAUDE.md" @'
+# CLAUDE.md — Monster Energy E2E Commercialization Platform
+
+## IMPORTANT — READ FIRST
+The canonical demo code is in src/app/page.tsx. This is v6 — the stable, working build.
+DO NOT modify the brief generation logic, the API call structure, or the prompt format.
+The brief generation works. Do not touch it.
+
+## Project Overview
+A single-page React application (Next.js) that helps Monster Energy marketers build
+community-first commercialization plans. 7-step flow:
+  1. Segment selection (6 consumer segments)
+  2. Cultural insights + brand guardrails
+  3. Event opportunities ranked by cultural fit score
+  4. Activation plan with account-specific sell-in templates
+  5. Supply chain & CCNA pipeline (5-month pipe, Coca-Cola bottling network)
+  6. Retail sell-in (trade spend A/B/C scenarios, content matrix)
+  7. AI-generated brief + ROI model + post-event debrief
+
+## Tech Stack
+- Framework: Next.js 14 (App Router)
+- Language: JavaScript (page.tsx uses JS syntax with allowJs:true — do not add TS types to page.tsx)
+- AI: Anthropic Claude API — currently called DIRECTLY from the browser in page.tsx
+  (this is intentional for the demo — the artifact sandbox proxy handles auth)
+- State: React useState/useEffect only
+
+## CRITICAL — API Call Architecture in v6
+The generateBrief() and sendChat() functions in page.tsx call the Anthropic API directly:
+  fetch("https://api.anthropic.com/v1/messages", ...)
+This works in the Claude.ai artifact sandbox because Anthropic proxies the auth.
+In a real Next.js deployment you MUST move these to /api/brief and /api/chat routes
+and add ANTHROPIC_API_KEY from .env.local. The API route stubs are already scaffolded
+in src/app/api/brief/route.ts and src/app/api/chat/route.ts.
+For the demo today: leave page.tsx exactly as-is.
+
+## Brief Generation — DO NOT CHANGE
+The prompt in generateBrief() is:
+  "You are a brand strategist for Monster Energy. Return ONLY valid JSON, no markdown:
+  {headline, strategy_statement, events_team[], creative_team[], partnerships_team[],
+   social_team[], new_product_needed, product_recommendation, success_metrics[],
+   estimated_roi_breakdown, retail_lift_projection, risk}
+  SEGMENT:|PRODUCT:|EVENT:|MARKET:|TRADE:|PIPE:|RETAILERS:|WHITE SPACE:"
+
+This format is proven to work. The JSON.parse strips markdown fences automatically.
+max_tokens is 1200. Model is claude-sonnet-4-20250514.
+
+## Brand Identity
+- Primary: #39FF14 (Monster green)
+- Background: #000000 / #0d0d0d
+- Borders: #1f1f1f
+- Muted text: #888888
+- Font: Arial Black / Arial
+
+## Key Concepts
+- FLRT: Monster's new women-targeted energy drink (Gen Z Female segment)
+- CCNA: Coca-Cola North America bottling network (5-month pipeline required)
+- Cultural fit score: 0-100 ranking events by 5 factors
+- Trade spend: TPR 35% / Display 30% / Digital 20% / Scan-down 15% (Scenario B recommended)
+
+## Segments
+1. Gen Z Female (18-26) — FLRT Launch — Coachella, NCAA, Roller Derby, Zine Fests
+2. Gen Z Male (18-26) — Core Growth — EVO Championship, ComplexCon
+3. Hispanic Youth (16-28) — Fastest Growing — Lowrider Super Show, Liga MX Fan Fests
+4. Gaming Community (16-32) — At Risk — PAX East/West/Aus
+5. Millennial Female (27-40) — FLRT Expand — Pilates & Studio Events
+6. Millennial Male (27-40) — Retain — Overland Expo
+
+## Features in v6 (all working)
+- Brand guardrail filter (must/must-not per segment)
+- Cultural fit score explainer with 5-factor breakdown bars
+- Staffing model calculator by event scale
+- Promotional calendar conflict checker
+- Campaign name generator with rationale
+- Account-specific sell-in templates (17 retailers including Best Buy)
+- Trade deal A/B/C scenario comparison with pros/cons
+- Content matrix builder
+- Sensitivity analysis (bear/base/bull ROI scenarios)
+- Post-event debrief with real scan data (4 events) + generated data (all others)
+- AI Sales Assistant chat panel with plan context
+- CSV export
+- Activate modal with 6 team briefs
+- Spanish-primary market flag for Hispanic Youth
+
+## What Claude Code should do with this project
+1. Run: npm install
+2. Run: npm run dev
+3. Open http://localhost:3000 — the app should load immediately
+4. To move API calls server-side (P1): implement src/app/api/brief/route.ts
+   and src/app/api/chat/route.ts, then update the fetch URLs in page.tsx
+5. See NEXT_ACTIONS.md for full backlog
+
+## Do NOT do
+- Do not refactor page.tsx into components (it will break the demo)
+- Do not add TypeScript types to page.tsx (it uses JS syntax)
+- Do not change the brief generation prompt or JSON parse logic
+- Do not change the API endpoint URLs in page.tsx until you have working API routes
+'@
+
+# ── NEXT_ACTIONS.md ───────────────────────────────────────────────────────────
+Write-File "$root\NEXT_ACTIONS.md" @'
+# NEXT_ACTIONS.md — Monster Platform Backlog
+
+## DEMO TODAY — DO NOT CHANGE ANYTHING IN page.tsx
+
+---
+
+## SPRINT 0 — QA bug fixes (after demo)
+
+| ID    | Sev  | Description                                   | Fix |
+|-------|------|-----------------------------------------------|-----|
+| FQ-01 | HIGH | Stale fit explainer on segment change          | Add setFitOpen(null) in selectSeg() |
+| FQ-02 | HIGH | Account filter persists across events          | Add setAF(null) in selectEvt() |
+| FQ-03 | HIGH | Trade scenario persists across events          | Add setTS(1) in selectEvt() |
+| FQ-04 | MED  | sensScen persists across brief regenerations   | Add setSensScen("base") in generateBrief() |
+| FQ-05 | MED  | briefSec persists across brief regenerations   | Add setBriefSec("events") in generateBrief() |
+| AQ-02 | HIGH | No API timeout on brief generation             | Add AbortController with 30s timeout |
+| EG-01 | HIGH | briefLoading can get stuck on sync error       | Wrap in try/finally { setBL(false) } |
+| DQ-01 | MED  | Trade spend items may not sum to total         | Calculate last item as remainder |
+| AQ-05 | MED  | Chat max_tokens 300 too low (truncates)        | Increase to 500 |
+| PQ-01 | MED  | TEAMS array rebuilt on every render            | useMemo(() => [...], [evt, segObj]) |
+
+---
+
+## SPRINT 1 — Move API calls server-side (security)
+
+- [ ] Implement src/app/api/brief/route.ts (stub already exists)
+- [ ] Implement src/app/api/chat/route.ts (stub already exists)  
+- [ ] Update fetch URLs in page.tsx from Anthropic direct to /api/brief and /api/chat
+- [ ] Add ANTHROPIC_API_KEY to .env.local
+- [ ] Verify brief generation and chat still work end-to-end
+
+---
+
+## SPRINT 2 — Workfront Planning integration
+
+- [ ] Build .doc export function using string concatenation (NO template literals)
+- [ ] Add wf_* fields to brief generation prompt
+- [ ] Add collapsible Workfront export panel to Step 6
+- [ ] Map to Workfront Planning Enterprise record types:
+      Campaign, Program, Tactics, Activities, Target Audiences, Deliverables, Regions, Partners
+- [ ] Test with Workfront Planning AI brief ingestion
+
+---
+
+## SPRINT 3 — Backend & persistence
+
+- [ ] Plan save/load (SQLite local, Turso for prod)
+- [ ] Authentication (NextAuth.js)
+- [ ] Audit trail
+- [ ] Portfolio dashboard (all active plans, status, spend roll-up)
+
+---
+
+## SPRINT 4 — Data integrations
+
+- [ ] Circana / Nielsen / Numerator live data
+- [ ] Walmart Luminate, Kroger 84.51 retailer portals
+- [ ] Real-time CCNA DC inventory visibility
+- [ ] SAP / ERP COGS + margin data
+
+---
+
+## SPRINT 5 — Strategic platform
+
+- [ ] Portfolio optimizer (budget allocation to max blended ROI)
+- [ ] Consumer cohort tracker (event → trial → repeat)
+- [ ] Joint Business Planning (JBP) module
+- [ ] Community-sourced event suggestion engine
+'@
+
+# ── src/lib/anthropic.ts ──────────────────────────────────────────────────────
+Write-File "$root\src\lib\anthropic.ts" @'
+import Anthropic from "@anthropic-ai/sdk";
+
+// Server-side only — used by API routes in Sprint 1
+export const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+export const MODEL = "claude-sonnet-4-20250514";
+'@
+
+# ── src/app/api/brief/route.ts ─────────────────────────────────────────────────
+Write-File "$root\src\app\api\brief\route.ts" @'
+// Sprint 1: Implement this to move brief generation server-side
+// Currently page.tsx calls Anthropic directly (fine for demo)
+// When ready: move the generateBrief fetch body here and update page.tsx to call /api/brief
+
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(req: NextRequest) {
+  // TODO Sprint 1
+  return NextResponse.json({ error: "Not implemented yet" }, { status: 501 });
+}
+'@
+
+# ── src/app/api/chat/route.ts ─────────────────────────────────────────────────
+Write-File "$root\src\app\api\chat\route.ts" @'
+// Sprint 1: Implement this to move chat server-side
+// Currently page.tsx calls Anthropic directly (fine for demo)
+
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(req: NextRequest) {
+  // TODO Sprint 1
+  return NextResponse.json({ error: "Not implemented yet" }, { status: 501 });
+}
+'@
+
+# ── src/app/layout.tsx ────────────────────────────────────────────────────────
+Write-File "$root\src\app\layout.tsx" @'
+import type { Metadata } from "next";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "Monster Energy — E2E Commercialization Platform",
+  description: "Build With The Culture. Not At It.",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}
+'@
+
+# ── src/app/globals.css ───────────────────────────────────────────────────────
+Write-File "$root\src\app\globals.css" @'
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #000;
+  color: #e8e8e8;
+  font-family: "Arial Black", "Arial", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #000; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+'@
+
+# ── src/app/page.tsx — v6 CANONICAL SOURCE ───────────────────────────────────
+# This is the exact working code. Do not modify.
+$pageContent = @'
+"use client";
+import { useState, useRef, useEffect } from "react";
+
+const M = "#39FF14";
+const MCARD = "#0d0d0d";
+const MBORDER = "#1f1f1f";
+const MTEXT = "#e8e8e8";
+const MSUB = "#888";
+
+const fmt = n => n >= 1e6 ? (n/1e6).toFixed(1)+"M" : n >= 1e3 ? (n/1e3).toFixed(0)+"K" : n;
+const fmtUSD = n => "$"+Number(n).toLocaleString();
+
+const SEGMENTS = [
+  { id:"gen-z-female",    label:"Gen Z Female",      age:"18\u201326", tag:"FLRT Launch",     tagHi:true  },
+  { id:"gen-z-male",      label:"Gen Z Male",        age:"18\u201326", tag:"Core Growth",     tagHi:false },
+  { id:"hispanic-youth",  label:"Hispanic Youth",    age:"16\u201328", tag:"Fastest Growing", tagHi:true  },
+  { id:"gaming-community",label:"Gaming Community",  age:"16\u201332", tag:"At Risk",         tagRed:true },
+  { id:"millennial-female",label:"Millennial Female",age:"27\u201340", tag:"FLRT Expand",     tagHi:false },
+  { id:"millennial-male", label:"Millennial Male",   age:"27\u201340", tag:"Retain",          tagHi:false },
+];
+
+const BRAND_GUARDRAILS = {
+  "gen-z-female":    { musts:["Female co-creator must be lead, not background talent","FLRT can design must be collaboratively developed, not assigned","Sampling must be opt-in, never handed to bystanders","All UGC rights negotiated upfront"], mustnots:["No 'diet culture' or weight-loss adjacent messaging","No sexualized imagery of any kind","Never position FLRT as a male brand with pink packaging","No cringe relatability \u2014 no brand accounts doing trends ironically","Never show FLRT next to alcohol at events"] },
+  "gen-z-male":      { musts:["Community-earned presence \u2014 be in the culture before you show up","All athlete/creator content must feel organic, not scripted","Limited-edition drops must be genuinely scarce"], mustnots:["No tryhard gaming slang in copy","Never out-spend presence \u2014 cultural cred > budget","No fake grassroots (astroturfing) tactics","Don't over-brand \u2014 less Monster logo, more Monster energy"] },
+  "hispanic-youth":  { musts:["At least one Spanish-speaking team member on every activation","Community liaison from within the culture required for all events","Regional flavor must be market-tested before full launch","Bilingual assets mandatory \u2014 Spanish primary in top markets"], mustnots:["Never translate English copy directly \u2014 Spanish content must be written natively","No pan-cultural Hispanic stereotyping \u2014 LA lowrider \u2260 Miami reggaeton","Never partner with brands that have cultural appropriation history","Do not treat 'Hispanic' as one monolithic audience"] },
+  "gaming-community":{ musts:["Genuine gameplay integration \u2014 not just logo placement","Partner with players, not just streamers","Product placement must make sense in context (a LAN party, not a fashion shoot)"], mustnots:["No fake pro gamer positioning","Never sponsor a player mid-controversy without a crisis plan","Don't position energy drink as a performance drug \u2014 FTC risk","No sponsored content that isn't clearly disclosed"] },
+  "millennial-female":{ musts:["Wellness framing must be accurate \u2014 FLRT is not a health drink","Studio partner must have genuine community credibility, not just follower count","Price point positioning must respect the premium wellness consumer"], mustnots:["No wellness washing \u2014 can't claim benefits not substantiated","Never position FLRT as a meal replacement or diet aid","No spiritual/wellness cultural appropriation"] },
+  "millennial-male":  { musts:["Adventure content must feature real terrain, not staged studio shoots","Creator partners must have authentic overlanding credentials","Product must be integrated naturally into the journey, not forced"], mustnots:["No toxic masculinity tropes","Never position Monster as a replacement for water on trails \u2014 safety messaging required","Don't over-engineer the 'dad' angle \u2014 it reads patronizing"] },
+};
+
+const PROMO_CONFLICTS = {
+  "gen-z-female":    [{ name:"FLRT National Launch Campaign",dates:"Mar 1\u2013Apr 30",type:"Brand",conflict:"High",note:"Running simultaneously amplifies FLRT \u2014 align messaging or you dilute launch impact"},{ name:"Spring Celsius Promo (competitor)",dates:"Mar 15\u2013Apr 15",type:"Competitive",conflict:"Med",note:"Celsius floor display window at Target overlaps \u2014 push for primary cold vault placement"},{ name:"Monster Spring Reset",dates:"Apr 1\u201315",type:"Internal",conflict:"Low",note:"Planogram reset scheduled \u2014 confirm FLRT facings are locked before reset executes"}],
+  "gen-z-male":      [{ name:"Monster Ultra Spring Push",dates:"Mar\u2013May",type:"Internal",conflict:"Med",note:"Ultra and Core are competing for same endcap space \u2014 coordinate with sales on priority"},{ name:"Ghost Energy Major Promo",dates:"Apr 1\u201330",type:"Competitive",conflict:"High",note:"Ghost has locked Gaming influencers for April \u2014 move EVO activation to May or counter with bigger creators"},{ name:"NBA Playoffs",dates:"Apr 15\u2013Jun",type:"External",conflict:"Low",note:"Attention splits \u2014 streetwear audience may be distracted, ComplexCon timing OK"}],
+  "hispanic-youth":  [{ name:"Cinco de Mayo Retail Push",dates:"Apr 20\u2013May 5",type:"Internal",conflict:"Low",note:"Amplifies Hispanic targeting \u2014 align Lowrider Show timing to ride this retail window"},{ name:"Regional Brand Launch (Competitor)",dates:"May 1\u201331",type:"Competitive",conflict:"High",note:"Reign has signed a Liga MX sponsorship starting May \u2014 counter with fan group activation before official launch"},{ name:"CCNA Restock Freeze (Memorial Day)",dates:"May 24\u201327",type:"Supply",conflict:"Med",note:"CCNA limits delivery windows around holiday \u2014 ensure pipe ships by May 20"}],
+  "gaming-community":[{ name:"G Fuel PAX Activation",dates:"PAX dates",type:"Competitive",conflict:"High",note:"G Fuel has been at PAX 6 years running \u2014 Monster needs a meaningfully different footprint to win"},{ name:"Monster x Esports Spring League",dates:"Mar\u2013May",type:"Internal",conflict:"Low",note:"Leverage existing esports signage budget to support PAX build"},{ name:"GPU Launch Cycle",dates:"Rolling",type:"External",conflict:"Low",note:"Major GPU launches drive convention attendance spikes \u2014 monitor and adjust staffing"}],
+  "millennial-female":[{ name:"Celsius Fitness Influencer Wave",dates:"Jan\u2013Mar",type:"Competitive",conflict:"High",note:"Celsius has locked 40+ fitness influencers for Q1 \u2014 FLRT needs a distinct wellness angle, not a copy"},{ name:"New Year Reset (Retail)",dates:"Jan 1\u2013Feb",type:"Internal",conflict:"Low",note:"Health & wellness shelf gets reset in January \u2014 ideal window to land FLRT in better placement"},{ name:"Dry January",dates:"Jan",type:"Cultural",conflict:"Med",note:"Wellness audience in peak consideration mode \u2014 accelerate FLRT sampling events into January"}],
+  "millennial-male":  [{ name:"Red Bull Overlanding Series",dates:"May\u2013Sep",type:"Competitive",conflict:"High",note:"Red Bull is already in outdoor/adventure space \u2014 Monster must go deeper (longer trips, harder terrain)"},{ name:"Overland Expo Window",dates:"May",type:"External",conflict:"Low",note:"Flagship event \u2014 best concentration of target consumer in one venue"},{ name:"Monster Spring Motorsports Push",dates:"Apr\u2013Jun",type:"Internal",conflict:"Med",note:"Budget overlap risk with motorsports program \u2014 confirm allocation before committing Overland spend"}],
+};
+
+const CAMPAIGN_NAMES = {
+  "gen-z-female":    [{ name:"HER ENERGY", rationale:"Reclaims 'energy' as a female-owned concept \u2014 direct, bold, unapologetic" },{ name:"FLRT WITH IT", rationale:"Playful double meaning \u2014 the brand name becomes the call to action" },{ name:"BUILD DIFFERENT", rationale:"Speaks to the co-creator model; resonates with Gen Z creator identity" }],
+  "gen-z-male":      [{ name:"BUILT FROM THE SCENE", rationale:"Signals authenticity \u2014 Monster earned its place, didn't buy it" },{ name:"CARRY ON", rationale:"Dual meaning: keep going + carry the culture forward" },{ name:"NO SCRIPT", rationale:"Speaks to unscripted, organic creator content ethos" }],
+  "hispanic-youth":  [{ name:"LA ENERG\u00cdA ES NUESTRA", rationale:"'The energy is ours' \u2014 community ownership positioning" },{ name:"HECHO AQU\u00cd", rationale:"'Made here' \u2014 honors local culture and community builders" },{ name:"SIN FRENOS", rationale:"'No brakes' \u2014 energy meets hustle culture, resonates with youth" }],
+  "gaming-community":[{ name:"PLAY THROUGH", rationale:"Gaming language that means sustained energy and persistence" },{ name:"GG FUEL", rationale:"Reclaims GG (Good Game) energy from competitors" },{ name:"LAST HIT", rationale:"MOBA/gaming term \u2014 the decisive final move; positions Monster as clutch fuel" }],
+  "millennial-female":[{ name:"EARNED IT", rationale:"Post-workout reward framing \u2014 you worked for this, FLRT is the payoff" },{ name:"THE RESET", rationale:"Speaks to the wellness reframe \u2014 FLRT as the transition drink" },{ name:"ACTUALLY WORKS", rationale:"Cuts through wellness noise with refreshing directness" }],
+  "millennial-male":  [{ name:"FURTHER", rationale:"One word that captures the overlanding ethos \u2014 always another mile" },{ name:"OUT HERE", rationale:"Placed in the moment, in the terrain, not the gym or the office" },{ name:"BUILT FOR THIS", rationale:"Bridges Monster's performance heritage with outdoor endurance culture" }],
+};
+
+const CONTENT_MATRIX = {
+  formats: ["Short-form video (TikTok/Reels)","Long-form video (YouTube)","Static image (IG/X)","Story / ephemeral","User-generated content","Event live content","Influencer collab post","Email / CRM","Paid social ad","OOH / event signage"],
+  messages: ["Cultural moment storytelling","Product trial / sampling","Artist/creator collab reveal","Community reaction / hype","Behind the scenes / build","Retail availability nudge","Event countdown / FOMO","Post-event recap","Social proof / UGC amplification","Scan-to-win / promo mechanic"],
+  platforms: ["TikTok","Instagram","YouTube","Twitter/X","Snapchat","Retailer.com","Email","In-store"]
+};
+
+const POST_EVENT_DATA = {
+  "gen-z-female|Neon Carnival / Coachella Adjacent": { event:"Neon Carnival / Coachella Adjacent", sku:"FLRT 12oz Slim Can", market:"Indio, CA", attendance:22000, social_impressions:4200000, ugc_posts:8400, earned_media_value:1850000, scan_data:[{w:"Wk -2",lift:6},{w:"Wk 0",lift:41},{w:"Wk +1",lift:27},{w:"Wk +2",lift:18},{w:"Wk +4",lift:11},{w:"Wk +8",lift:6}], retailer_perf:[{r:"Walmart",base:1240,event:1820,lift:47},{r:"Target",base:980,event:1390,lift:42},{r:"Kroger",base:760,event:1050,lift:38},{r:"7-Eleven",base:2100,event:2940,lift:40}], new_buyers_pct:34, repeat_rate:28, nps:71, brand_health_lift:"+9pts aided awareness", top_content:"GRWM ft. FLRT can \u2014 2.1M views organic", key_win:"Limited-edition artist can sold out in 4hrs \u2014 6,200 cans", key_miss:"Display compliance at Kroger was 67% vs 90% target \u2014 field team gap", recommendation:"Extend NIL program to 3 breakout artists from Coachella lineup for summer push" },
+  "gen-z-female|Women's NCAA March Madness": { event:"Women's NCAA March Madness", sku:"FLRT 12oz Slim Can", market:"Multiple Markets", attendance:380000, social_impressions:9100000, ugc_posts:14200, earned_media_value:3400000, scan_data:[{w:"Wk -2",lift:9},{w:"Wk 0",lift:52},{w:"Wk +1",lift:33},{w:"Wk +2",lift:21},{w:"Wk +4",lift:13},{w:"Wk +8",lift:7}], retailer_perf:[{r:"Walmart",base:2100,event:3360,lift:60},{r:"Target",base:1680,event:2620,lift:56},{r:"Walgreens",base:890,event:1340,lift:51},{r:"Publix",base:1120,event:1680,lift:50}], new_buyers_pct:41, repeat_rate:31, nps:78, brand_health_lift:"+14pts unaided awareness among F18-26", top_content:"NIL athlete Paige-style reel \u2014 4.8M combined views", key_win:"Publix end-cap compliance 94% \u2014 best-in-class execution", key_miss:"NIL contract delays pushed 3 athletes to post-event \u2014 missed peak window", recommendation:"Lock NIL athletes 90 days pre-event minimum; build a FLRT athlete roster for the year" },
+  "hispanic-youth|Lowrider Super Show": { event:"Lowrider Super Show", sku:"Monster Original 16oz", market:"Los Angeles, CA", attendance:48000, social_impressions:6800000, ugc_posts:12100, earned_media_value:2200000, scan_data:[{w:"Wk -2",lift:5},{w:"Wk 0",lift:38},{w:"Wk +1",lift:24},{w:"Wk +2",lift:16},{w:"Wk +4",lift:9},{w:"Wk +8",lift:5}], retailer_perf:[{r:"Walmart",base:3200,event:4480,lift:40},{r:"Food 4 Less",base:1840,event:2670,lift:45},{r:"7-Eleven",base:4100,event:5740,lift:40},{r:"Circle K",base:2900,event:4060,lift:40}], new_buyers_pct:22, repeat_rate:38, nps:84, brand_health_lift:"+11pts brand love score in LA DMA", top_content:"Monster lowrider build reveal \u2014 3.2M views, 94K shares", key_win:"People's Choice Award co-presentation drove massive earned media coverage", key_miss:"Spanish-language social content posted 3 days late \u2014 missed event week peak", recommendation:"Hire a dedicated Spanish-language social manager for all Hispanic market activations" },
+  "gaming-community|PAX East / West / Aus": { event:"PAX East / West / Aus", sku:"Monster Original 16oz", market:"Boston, MA / Seattle, WA", attendance:95000, social_impressions:11200000, ugc_posts:19800, earned_media_value:2900000, scan_data:[{w:"Wk -2",lift:4},{w:"Wk 0",lift:35},{w:"Wk +1",lift:22},{w:"Wk +2",lift:15},{w:"Wk +4",lift:8},{w:"Wk +8",lift:4}], retailer_perf:[{r:"Walmart",base:4200,event:5670,lift:35},{r:"Best Buy",base:890,event:1250,lift:40},{r:"7-Eleven",base:5800,event:7830,lift:35}], new_buyers_pct:18, repeat_rate:24, nps:62, brand_health_lift:"+5pts consideration vs G Fuel", top_content:"Monster Gaming Lounge time-lapse \u2014 1.4M Twitch clips", key_win:"Indie game reveal inside lounge drove massive earned media", key_miss:"NPS 62 vs 70 target \u2014 lounge experience rated 'too corporate' by 31% of attendees", recommendation:"Turn operations of lounge over to a gamer-run crew \u2014 brand should disappear into the experience" },
+};
+
+const getPostEvent = (segId, evtName) => {
+  const key = `${segId}|${evtName}`;
+  if (POST_EVENT_DATA[key]) return POST_EVENT_DATA[key];
+  let seed = 0;
+  const str = segId+evtName;
+  for (let i=0;i<str.length;i++) seed += str.charCodeAt(i)*(i+1);
+  const rnd = (min,max) => min+Math.floor(((seed*9301+49297)%233280)/233280*(max-min));
+  return { event:evtName, sku:"Monster Original 16oz", market:"Multiple Markets", attendance:rnd(8000,60000), social_impressions:rnd(800000,8000000), ugc_posts:rnd(2000,15000), earned_media_value:rnd(400000,3000000), scan_data:[{w:"Wk -2",lift:rnd(3,8)},{w:"Wk 0",lift:rnd(28,50)},{w:"Wk +1",lift:rnd(18,35)},{w:"Wk +2",lift:rnd(10,22)},{w:"Wk +4",lift:rnd(5,14)},{w:"Wk +8",lift:rnd(2,7)}], retailer_perf:[{r:"Walmart",base:rnd(900,3500),event:rnd(1200,5000),lift:rnd(28,55)},{r:"Target",base:rnd(700,2500),event:rnd(900,3800),lift:rnd(25,50)},{r:"7-Eleven",base:rnd(1500,5000),event:rnd(2100,7000),lift:rnd(30,55)}], new_buyers_pct:rnd(15,38), repeat_rate:rnd(20,35), nps:rnd(58,80), brand_health_lift:`+${rnd(4,13)}pts aided awareness`, top_content:`Event highlight reel \u2014 ${rnd(400,2400)}K views`, key_win:"Community co-creation approach drove outsized earned media vs. traditional sponsorship", key_miss:"Field execution compliance below 80% in 2 of 4 target markets", recommendation:"Increase field team size by 40% for markets >25K attendance" };
+};
+
+const SD = {
+  "gen-z-female":{ size:"68M in US", growth:"+12% YoY", competitor_threat:"Celsius, Olipop, Poppi", product_signal:"FLRT \u2014 low sugar, aesthetic can, functional energy", cultural_pillars:["Self-expression & identity","Mental wellness + performance","TikTok aesthetic culture","Female athletics","Music & live experiences"], whitespace:"No major energy brand has built authentic community with Gen Z women \u2014 they're sold AT, not WITH.", spanish_priority:false,
+    events:[
+      { name:"Neon Carnival / Coachella Adjacent", type:"Music & Culture", scale:"Large", fit:95, fit_why:"Music festival culture is Gen Z female's highest-index live event. FLRT's aesthetic-first design has natural product-event synergy. Co-creator model maps perfectly to artist collabs that dominate Coachella discourse.", fit_factors:[{f:"Audience index",s:97},{f:"Product fit",s:96},{f:"Earned media potential",s:94},{f:"Organic activation viability",s:93},{f:"Competitive whitespace",s:90}], organic_play:"FLRT-branded activation with photo moments, limited-edition cans by female artists, GRWM content station", collab:"Partner with a female headliner as co-creator \u2014 not a sponsor", product:"FLRT", sku:"FLRT 12oz Slim Can", reach:"850K+", earned_media:"High", est_roi:"4.2x", event_market:"Indio, CA", retailer_targets:["Walmart","Target","Kroger","7-Eleven"], trade_spend:280000, pipe_units:420000, staff_base:8, staff_scale:"Large festival footprint" },
+      { name:"Women's NCAA March Madness", type:"Sports", scale:"Large", fit:88, fit_why:"Women's sports moment is at all-time cultural peak. FLRT + female athlete NIL is the single most credible path to authentic community with Gen Z women.", fit_factors:[{f:"Audience index",s:91},{f:"Product fit",s:89},{f:"Earned media potential",s:96},{f:"Organic activation viability",s:82},{f:"Competitive whitespace",s:88}], organic_play:"On-court FLRT sampling bar + NIL athlete series 'Powered by Her'", collab:"NIL partnerships with 10\u201315 breakout female athletes pre-tournament", product:"FLRT", sku:"FLRT 12oz Slim Can", reach:"1.2M+", earned_media:"Very High", est_roi:"5.1x", event_market:"Multiple Markets", retailer_targets:["Walmart","Target","Walgreens","Publix"], trade_spend:420000, pipe_units:680000, staff_base:12, staff_scale:"Multi-market" },
+      { name:"Roller Derby & Skate Culture", type:"Alt Sport", scale:"Small-Med", fit:91, fit_why:"Roller derby skews heavily Gen Z female with strong alt-identity cultural codes that map directly to FLRT's positioning.", fit_factors:[{f:"Audience index",s:94},{f:"Product fit",s:93},{f:"Earned media potential",s:90},{f:"Organic activation viability",s:95},{f:"Competitive whitespace",s:97}], organic_play:"Become part of the scene. Custom FLRT skate deck giveaways + grassroots team sponsorship", collab:"Feature local derby teams in content \u2014 not pro athletes", product:"FLRT", sku:"FLRT 12oz Slim Can", reach:"180K + 2M TikTok", earned_media:"Very High", est_roi:"3.6x", event_market:"Austin, TX / Portland, OR", retailer_targets:["HEB","Fred Meyer","7-Eleven"], trade_spend:95000, pipe_units:160000, staff_base:4, staff_scale:"Intimate grassroots" },
+      { name:"Zine Fests & Art Markets", type:"Art & Culture", scale:"Small", fit:82, fit_why:"Zine culture is a hotbed of Gen Z female creative identity. Small reach, outsized cultural credibility.", fit_factors:[{f:"Audience index",s:86},{f:"Product fit",s:84},{f:"Earned media potential",s:80},{f:"Organic activation viability",s:92},{f:"Competitive whitespace",s:95}], organic_play:"Commission 5 Gen Z female artists for FLRT limited-edition cans. Sell out intentionally.", collab:"Co-produce a zine about energy, ambition, identity", product:"FLRT", sku:"FLRT 12oz Slim Can", reach:"90K + outsized online", earned_media:"High", est_roi:"2.1x", event_market:"Brooklyn, NY / LA", retailer_targets:["Whole Foods","Target"], trade_spend:45000, pipe_units:72000, staff_base:3, staff_scale:"Small intimate" },
+    ]},
+  "gen-z-male":{ size:"71M in US", growth:"+8% retained", competitor_threat:"Ghost, Prime, Celsius", product_signal:"Core Monster + limited collabs; potential gaming SKU", cultural_pillars:["Gaming & esports","Streetwear & sneaker culture","Action sports","Creator economy","Hip-hop"], whitespace:"Monster owns motorsports but losing gaming ground to Ghost and G Fuel.", spanish_priority:false,
+    events:[
+      { name:"EVO Championship Series", type:"Esports", scale:"Large", fit:93, fit_why:"EVO is the most credible fighting game event globally. Lounge-as-destination flips the script on booth culture.", fit_factors:[{f:"Audience index",s:96},{f:"Product fit",s:94},{f:"Earned media potential",s:92},{f:"Organic activation viability",s:90},{f:"Competitive whitespace",s:91}], organic_play:"Build a Monster FGC lounge \u2014 not a booth, a destination. Side tournament, custom setups.", collab:"Sponsor top 8 players, not just winners", product:"Core Monster", sku:"Monster Original 16oz", reach:"700K + 12M stream", earned_media:"Very High", est_roi:"4.8x", event_market:"Las Vegas, NV", retailer_targets:["Walmart","7-Eleven","Best Buy"], trade_spend:310000, pipe_units:510000, staff_base:10, staff_scale:"Convention floor" },
+      { name:"ComplexCon", type:"Streetwear", scale:"Large", fit:85, fit_why:"Streetwear crossover with energy drink culture is underexploited. ComplexCon audience is the tastemaker layer of Gen Z male.", fit_factors:[{f:"Audience index",s:88},{f:"Product fit",s:82},{f:"Earned media potential",s:90},{f:"Organic activation viability",s:84},{f:"Competitive whitespace",s:86}], organic_play:"Monster x streetwear collab drop exclusive to ComplexCon \u2014 brand as cultural object", collab:"Co-design with an emerging streetwear label", product:"Core Monster", sku:"Monster Original 16oz", reach:"65K + 5M online", earned_media:"Very High", est_roi:"3.9x", event_market:"Long Beach, CA", retailer_targets:["Target","7-Eleven"], trade_spend:180000, pipe_units:290000, staff_base:6, staff_scale:"Brand pop-up format" },
+    ]},
+  "hispanic-youth":{ size:"22M in target demo", growth:"+19% \u2014 fastest growing", competitor_threat:"Reign, Bang, regional brands", product_signal:"Localized flavors, bilingual community presence needed", cultural_pillars:["Lowrider & car culture","Regional music (corridos, reggaeton)","F\u00fatbol","Street food culture","Family & community"], whitespace:"Massive underserved segment \u2014 brands show up at events but don't build with the community.", spanish_priority:true,
+    events:[
+      { name:"Lowrider Super Show", type:"Car Culture", scale:"Large", fit:96, fit_why:"Lowrider culture is the heartbeat of West Coast Hispanic youth identity. Co-presenting the People's Choice Award is earning a seat at the table, not renting one.", fit_factors:[{f:"Audience index",s:98},{f:"Product fit",s:96},{f:"Earned media potential",s:94},{f:"Organic activation viability",s:97},{f:"Competitive whitespace",s:96}], organic_play:"Co-present People's Choice Award \u2014 become part of the judging culture, not a banner", collab:"Commission a community builder to create a Monster-branded lowrider", product:"Core Monster", sku:"Monster Original 16oz", reach:"400K+", earned_media:"High", est_roi:"5.3x", event_market:"Los Angeles, CA", retailer_targets:["Walmart","Food 4 Less","7-Eleven","Circle K"], trade_spend:240000, pipe_units:380000, staff_base:8, staff_scale:"Festival grounds" },
+      { name:"Liga MX Fan Fests (US)", type:"Sports", scale:"Large", fit:90, fit_why:"Liga MX is the most-watched soccer league in the US by total viewers. Fan fests are street-level community moments.", fit_factors:[{f:"Audience index",s:93},{f:"Product fit",s:89},{f:"Earned media potential",s:88},{f:"Organic activation viability",s:91},{f:"Competitive whitespace",s:90}], organic_play:"Street-level activation outside stadiums \u2014 not inside. 'La Energ\u00eda de Mi Barrio'", collab:"Partner with fan groups (ultras), not teams", product:"Core Monster", sku:"Monster Original 16oz", reach:"1.5M+ across markets", earned_media:"Med-High", est_roi:"4.4x", event_market:"Multiple Markets", retailer_targets:["Walmart","Kroger","Fiesta Mart"], trade_spend:390000, pipe_units:620000, staff_base:14, staff_scale:"Multi-city tour" },
+    ]},
+  "gaming-community":{ size:"45M active in target demo", growth:"+22% energy consideration", competitor_threat:"G Fuel, Ghost, Prime dominating", product_signal:"Gaming-specific SKU needed \u2014 focus/endurance positioning", cultural_pillars:["Streaming culture (Twitch, YouTube)","Esports","Game launch events","LAN parties","Content creation"], whitespace:"Monster was early in esports but hasn't evolved with streaming culture.", spanish_priority:false,
+    events:[
+      { name:"PAX East / West / Aus", type:"Gaming Convention", scale:"Large", fit:92, fit_why:"PAX is the authentic fan gaming event. Monster needs to win the grassroots before it can win the stream.", fit_factors:[{f:"Audience index",s:94},{f:"Product fit",s:91},{f:"Earned media potential",s:90},{f:"Organic activation viability",s:93},{f:"Competitive whitespace",s:88}], organic_play:"Monster Gaming Lounge \u2014 bring your squad, team up, free play zone", collab:"Partner with indie studios for exclusive reveals inside the lounge", product:"Core Monster", sku:"Monster Original 16oz", reach:"200K per event", earned_media:"High", est_roi:"4.1x", event_market:"Boston, MA / Seattle, WA", retailer_targets:["Walmart","Best Buy","7-Eleven"], trade_spend:260000, pipe_units:430000, staff_base:9, staff_scale:"Convention hall footprint" },
+    ]},
+  "millennial-female":{ size:"42M in US", growth:"+6% wellness-adjacent", competitor_threat:"Celsius, Zevia, Hiball", product_signal:"FLRT as bridge between wellness and energy", cultural_pillars:["Boutique fitness (Pilates, barre)","Wine-to-wellness shift","Podcast culture","Female entrepreneurship","Outdoor recreation"], whitespace:"Millennials leaving soda but not yet loyal to any energy brand \u2014 FLRT is the entry point.", spanish_priority:false,
+    events:[
+      { name:"Pilates & Reformer Studio Events", type:"Fitness", scale:"Small-Med", fit:84, fit_why:"Boutique fitness is millennial female's primary community gathering point. Post-class ritual adoption is how Liquid Death won water.", fit_factors:[{f:"Audience index",s:87},{f:"Product fit",s:86},{f:"Earned media potential",s:78},{f:"Organic activation viability",s:88},{f:"Competitive whitespace",s:90}], organic_play:"FLRT as the post-class ritual. Top studios in 10 key markets \u2014 not gym chains.", collab:"Co-create a FLRT x Studio limited class series", product:"FLRT", sku:"FLRT 12oz Slim Can", reach:"500K across markets", earned_media:"Medium", est_roi:"3.1x", event_market:"NYC / LA / Chicago", retailer_targets:["Whole Foods","Target","Sprouts"], trade_spend:130000, pipe_units:210000, staff_base:5, staff_scale:"Studio-by-studio rollout" },
+    ]},
+  "millennial-male":{ size:"44M in US", growth:"+4% retained", competitor_threat:"Red Bull retaining loyalists", product_signal:"Core Monster \u2014 performance and endurance messaging", cultural_pillars:["Overlanding & adventure","Action sports (spectating)","Craft beer crossover","Fatherhood redefined","Fantasy sports"], whitespace:"Massive opportunity in overlanding/outdoor culture as it explodes with millennial males.", spanish_priority:false,
+    events:[
+      { name:"Overland Expo", type:"Outdoor / Adventure", scale:"Large", fit:87, fit_why:"Overlanding is the fastest-growing outdoor trend among 30\u201345 males. Red Bull has dominated action sports but hasn't planted in overlanding.", fit_factors:[{f:"Audience index",s:90},{f:"Product fit",s:88},{f:"Earned media potential",s:86},{f:"Organic activation viability",s:87},{f:"Competitive whitespace",s:94}], organic_play:"Monster trail rig on display + overlanding build series on YouTube", collab:"Partner with top 3 overlanding YouTube creators", product:"Core Monster", sku:"Monster Original 16oz", reach:"80K + 8M YouTube", earned_media:"Very High", est_roi:"3.7x", event_market:"Flagstaff, AZ", retailer_targets:["REI","Bass Pro","Walmart","Loves Travel Stop"], trade_spend:175000, pipe_units:280000, staff_base:6, staff_scale:"Outdoor festival format" },
+    ]},
+};
+
+const PIPE_MONTHS = [
+  { mo:-5, label:"M-5", phase:"Demand Signal", tasks:["Submit initial forecast to CCNA (Coca-Cola bottling network)","Align on SKU list with supply chain team","Reserve co-packing capacity for new SKUs (FLRT)"] },
+  { mo:-4, label:"M-4", phase:"Production Order", tasks:["Finalize PO to bottling partner","Confirm label artwork for regulatory review","Lock in can/packaging supply from Ball/Crown"] },
+  { mo:-3, label:"M-3", phase:"Retail Sell-In", tasks:["Submit planogram requests to key accounts","Deliver spec sheets + sell decks to buyers","Negotiate trade spend commitments (TPR, display, feature)"] },
+  { mo:-2, label:"M-2", phase:"Shipment & Dist.", tasks:["Product ships from co-packer to CCNA DCs","Confirm retail reset dates with category managers","Deliver POS/display materials to field team"] },
+  { mo:-1, label:"M-1", phase:"Retail Execution", tasks:["Field team confirms on-shelf placement","Verify display compliance (secondary placement)","Go-live on retailer.com / digital shelf"] },
+  { mo:0,  label:"Event", phase:"Event / Activation", tasks:["Live event execution","Social amplification push","Sampling at event tied to retail geo-targeting"] },
+  { mo:1,  label:"M+1", phase:"Post-Event Lift", tasks:["Pull POS scan data from key accounts","Measure baseline vs. event week velocity","Assess display compliance vs. plan"] },
+  { mo:2,  label:"M+2", phase:"ROI Measurement", tasks:["Full post-mortem: earned media value + scan lift","Reforecast if velocity exceeds plan","Decide replenishment order & promotion extension"] },
+];
+
+const ACCOUNT_TEMPLATES = {
+  "Walmart":    { channel:"Mass", priority:"Primary", facings:6, placement:"Cold vault door 1\u20132 + endcap", tpr:"$0.50/unit", promo_window:"Event -2wk to +4wk", digital:"Walmart.com featured banner + search", note:"Submit via Retail Link 8wk out. Category captain review in Jan & Jul." },
+  "Target":     { channel:"Mass", priority:"Primary", facings:4, placement:"Eye-level + endzone display", tpr:"$0.40/unit", promo_window:"Event week \u00b12wk", digital:"Target.com promoted listing + Circle app feature", note:"Buyer is category-focused \u2014 lead with segment growth data, not just Monster share." },
+  "Kroger":     { channel:"Grocery", priority:"Primary", facings:5, placement:"Cold vault + secondary lobby display", tpr:"$0.45/unit", promo_window:"Event -1wk to +3wk", digital:"Kroger.com + 84.51 targeted digital coupon", note:"84.51 loyalty data is key lever \u2014 propose geo-targeted digital coupon within 15mi of event." },
+  "7-Eleven":   { channel:"C-store", priority:"Primary", facings:3, placement:"Door 1 or 2, single-serve cold", tpr:"None \u2014 focus on placement premium", promo_window:"Event week only", digital:"7NOW delivery app featured placement", note:"C-store is about placement, not price. Door position is the only metric that matters." },
+  "Whole Foods":{ channel:"Natural", priority:"Secondary", facings:3, placement:"Dedicated energy set, eye-level", tpr:"$0.30/unit", promo_window:"Event \u00b11wk", digital:"Amazon Fresh + Prime Now featured", note:"FLRT only \u2014 core Monster doesn't fit. Position as wellness-adjacent, not energy drink." },
+  "Publix":     { channel:"Grocery", priority:"Primary", facings:4, placement:"Cold vault + floor display", tpr:"$0.40/unit", promo_window:"Event -1wk to +3wk", digital:"Publix app digital coupon", note:"Southeast stronghold \u2014 high-value for NCAA activation. BOGO promotions index well." },
+  "HEB":        { channel:"Grocery", priority:"Primary", facings:4, placement:"Cold vault + endcap", tpr:"$0.45/unit", promo_window:"Event week \u00b12wk", digital:"HEB Go app + weekly ad feature", note:"Texas-dominant. Family-pack SKU performs well. Spanish-language secondary assets required." },
+  "Walgreens":  { channel:"Drug", priority:"Secondary", facings:2, placement:"Cooler near checkout", tpr:"$0.30/unit", promo_window:"Event week", digital:"myWalgreens app points bonus", note:"Impulse-buy format. Single-serve only. FLRT slim can performs better than core 16oz." },
+  "REI":        { channel:"Specialty Outdoor", priority:"Primary", facings:4, placement:"Register cooler + trail fuel section", tpr:"None", promo_window:"Event +1wk to +4wk", digital:"REI.com + email to co-op members in market", note:"No TPR culture here. Storytelling is the sell \u2014 co-op members respond to brand values." },
+  "Bass Pro":   { channel:"Specialty Outdoor", priority:"Primary", facings:4, placement:"Fishing/hunting checkout cooler", tpr:"$0.30/unit", promo_window:"Event \u00b12wk", digital:"Bass Pro app feature", note:"Overlanding audience is 85% male 30-50. 4-pack multi-serve is the right pack size." },
+  "Food 4 Less":{ channel:"Value Grocery", priority:"Primary", facings:5, placement:"Cold vault + floor stack", tpr:"$0.55/unit", promo_window:"Event -1wk to +2wk", digital:"Kroger digital coupon (shared platform)", note:"Price-sensitive shopper. Value multipacks drive velocity. Bilingual shelf talker required." },
+  "Fiesta Mart":{ channel:"Hispanic Grocery", priority:"Primary", facings:5, placement:"Cold vault eye-level + endcap", tpr:"$0.50/unit", promo_window:"Event week \u00b12wk", digital:"In-store digital signage + radio", note:"Spanish-primary market. In-store radio spots in Spanish index 3x vs. shelf talker alone." },
+  "Fred Meyer": { channel:"Grocery / Mass", priority:"Secondary", facings:4, placement:"Cold vault + seasonal endcap", tpr:"$0.40/unit", promo_window:"Event \u00b12wk", digital:"Kroger digital (shared platform)", note:"Pacific Northwest stronghold \u2014 Portland/Austin FLRT skate activation tie-in is strong hook." },
+  "Circle K":   { channel:"C-store", priority:"Primary", facings:3, placement:"Door 1 cold vault", tpr:"None", promo_window:"Event week", digital:"Inner Circle app bonus points", note:"C-store model \u2014 placement is everything. Inner Circle loyalty program has 9M members." },
+  "Sprouts":    { channel:"Natural / Health", priority:"Secondary", facings:2, placement:"Wellness cooler section", tpr:"$0.25/unit", promo_window:"Event \u00b11wk", digital:"Sprouts weekly ad + email", note:"FLRT only \u2014 wellness adjacency is the pitch. Sugar-free messaging must be front and center." },
+  "Loves Travel Stop":{ channel:"Travel / C-store", priority:"Primary", facings:4, placement:"Trucker cooler, eye-level", tpr:"$0.30/unit", promo_window:"Event +1wk to +6wk (post-event halo)", digital:"myLoves app points", note:"Overlanding audience drives long distances. 16oz 4-pack is the right call here." },
+  "Best Buy":   { channel:"Consumer Electronics", priority:"Primary", facings:4, placement:"Gaming accessories aisle cooler + checkout impulse fixture", tpr:"$0.35/unit", promo_window:"Event -1wk to +3wk", digital:"BestBuy.com featured banner in Gaming category + Totaltech member email", note:"Unique channel \u2014 buyer is in a gaming mindset at shelf. Cross-merch with controllers and headsets. Totaltech members (5M+) are the highest-value gaming consumer. Pitch the lounge event tie-in directly to the gaming buyer, not beverage buyer." },
+};
+
+const TRADE_SCENARIOS = (spend) => ([
+  { label:"Scenario A \u2014 Brand Builder", focus:"Maximize earned media & cultural credibility", tpr:Math.round(spend*0.20), display:Math.round(spend*0.40), digital:Math.round(spend*0.30), scan:Math.round(spend*0.10), pros:["Strongest cultural storytelling","Display build creates physical presence","High digital co-op amplifies event content"], cons:["Lower price reduction may suppress trial","Scan-down fund is thin \u2014 less retailer motivation"], est_lift:"+28% event week", est_roi:"3.8x" },
+  { label:"Scenario B \u2014 Balanced (Recommended)", focus:"Optimize trial + retention across all vehicles", tpr:Math.round(spend*0.35), display:Math.round(spend*0.30), digital:Math.round(spend*0.20), scan:Math.round(spend*0.15), pros:["Strongest blended ROI across trial + repeat","TPR drives trial from new buyers","Display + digital creates omnichannel presence"], cons:["No single vehicle is dominant \u2014 requires strong execution across all"], est_lift:"+38% event week", est_roi:"4.4x", recommended:true },
+  { label:"Scenario C \u2014 Volume Driver", focus:"Maximize scan velocity & retailer relationship", tpr:Math.round(spend*0.50), display:Math.round(spend*0.15), digital:Math.round(spend*0.15), scan:Math.round(spend*0.20), pros:["Highest unit velocity during event window","Strong scan-down fund motivates retailer prioritization","Best for C-store and value grocery channels"], cons:["Minimal brand-building investment","Digital shelf presence is weak","Retail doesn't see event story \u2014 just a price play"], est_lift:"+44% event week", est_roi:"3.6x" },
+]);
+
+const SENSITIVITY = (roi_base) => {
+  const base = parseFloat(roi_base);
+  return {
+    bull: { att:"+30%", social:"+50%", scan:"+52%", roi:(base*1.38).toFixed(1)+"x", note:"Activation goes viral, artist collab drives massive UGC, retailer compliance 95%+" },
+    base: { att:"As modeled", social:"As modeled", scan:"As modeled", roi:roi_base, note:"Plan executes as designed with normal variance in attendance and retailer compliance" },
+    bear: { att:"-25%", social:"-30%", scan:"-18%", roi:(base*0.68).toFixed(1)+"x", note:"Weather event, competing activation, or retail compliance below 70% in key markets" },
+  };
+};
+
+const STEPS = ["Segment","Insights","Events","Plan","Supply Chain","Sell-In","Brief & ROI"];
+
+function fitBadge(s) {
+  if (s>=90) return {bg:"#0d1f0a",text:M,border:"#1a3d10"};
+  if (s>=80) return {bg:"#1a1200",text:"#EF9F27",border:"#332200"};
+  return {bg:"#1a0a0a",text:"#ff6b6b",border:"#330f0f"};
+}
+
+const SH = ({title,sub}) => <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:"1.25rem"}}><div style={{width:4,height:30,background:M,borderRadius:2}}/><div><div style={{fontSize:16,fontWeight:900,color:"#fff"}}>{title}</div>{sub&&<div style={{fontSize:10,color:MSUB}}>{sub}</div>}</div></div>;
+const SC = ({l,v,hi}) => <div style={{background:hi?"#0a1400":MCARD,border:`1px solid ${hi?"#1a3d10":MBORDER}`,borderRadius:6,padding:"0.75rem 0.9rem"}}><div style={{fontSize:9,color:MSUB,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:3}}>{l}</div><div style={{fontSize:14,fontWeight:900,color:hi?M:"#fff",lineHeight:1.2}}>{v}</div></div>;
+const IB = ({color,label,children}) => { const t={green:{bg:"#0a1400",tc:"#b8e89a",bc:"#1a3d10",lc:M},amber:{bg:"#130d00",tc:"#f5d5a0",bc:"#332200",lc:"#EF9F27"},purple:{bg:"#0d0d1f",tc:"#b3b0f5",bc:"#1c1a4a",lc:"#7F77DD"},red:{bg:"#1a0a0a",tc:"#f5b8b8",bc:"#330f0f",lc:"#ff6b6b"},pink:{bg:"#1a0a12",tc:"#f4b8d1",bc:"#3d1a2a",lc:"#ED93B1"}}[color]||{bg:"#0a1400",tc:"#b8e89a",bc:"#1a3d10",lc:M}; return <div style={{background:t.bg,border:`1px solid ${t.bc}`,borderRadius:6,padding:"0.85rem 1rem",marginBottom:10}}><div style={{fontSize:9,fontWeight:700,color:t.lc,textTransform:"uppercase",letterSpacing:"0.09em",marginBottom:5}}>{label}</div><div style={{fontSize:12,color:t.tc,lineHeight:1.7}}>{children}</div></div>; };
+const Lbl = ({children}) => <div style={{fontSize:9,color:MSUB,textTransform:"uppercase",letterSpacing:"0.08em"}}>{children}</div>;
+const Pill = ({children}) => <span style={{fontSize:11,fontWeight:700,padding:"3px 9px",background:"#0d1f0a",color:M,borderRadius:3,border:`1px solid #1a3d10`}}>{children}</span>;
+const AB = ({onClick,children,secondary}) => <button onClick={onClick} style={{padding:"10px 22px",background:secondary?"transparent":M,color:secondary?MSUB:"#000",border:secondary?`1px solid ${MBORDER}`:"none",borderRadius:4,fontSize:11,fontWeight:900,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer",marginTop:4,marginRight:8}}>{children}</button>;
+const BS = ({title,items,bg,tc,bc,ac}) => { const arr=Array.isArray(items)?items:[items]; return <div style={{background:bg,border:`1px solid ${bc}`,borderRadius:6,padding:"1rem 1.1rem",marginBottom:10}}><div style={{fontSize:10,fontWeight:700,color:ac,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:10}}>{title}</div>{arr.map((item,i)=><div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}><span style={{width:17,height:17,borderRadius:"50%",background:"rgba(0,0,0,0.3)",border:`1px solid ${bc}`,color:ac,fontSize:9,fontWeight:900,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>{i+1}</span><div style={{fontSize:12,color:tc,lineHeight:1.7}}>{item}</div></div>)}</div>; };
+
+export default function App() {
+  const [step,setStep]=useState(0);
+  const [seg,setSeg]=useState(null);
+  const [evt,setEvt]=useState(null);
+  const [brief,setBrief]=useState(null);
+  const [briefLoading,setBL]=useState(false);
+  const [briefSec,setBriefSec]=useState("events");
+  const [pipeStep,setPipeStep]=useState(null);
+  const [chatOpen,setChatOpen]=useState(false);
+  const [chatMsgs,setChatMsgs]=useState([{role:"assistant",text:"Hey \u2014 I'm your Monster commercialization assistant. Ask me anything about this plan."}]);
+  const [chatInput,setChatInput]=useState("");
+  const [chatLoading,setChatL]=useState(false);
+  const [activateOpen,setActO]=useState(false);
+  const [activateSent,setActS]=useState(false);
+  const [guardrailOpen,setGO]=useState(false);
+  const [fitOpen,setFitOpen]=useState(null);
+  const [tradeScen,setTS]=useState(1);
+  const [debriefOpen,setDO]=useState(false);
+  const [sensScen,setSensScen]=useState("base");
+  const [acctFilter,setAF]=useState(null);
+  const [confOpen,setConfOpen]=useState(false);
+  const chatEndRef=useRef(null);
+  const sd=seg?SD[seg]:null;
+  const segObj=seg?SEGMENTS.find(s=>s.id===seg):null;
+  useEffect(()=>{chatEndRef.current?.scrollIntoView({behavior:"smooth"});},[chatMsgs]);
+  const selectSeg=id=>{setSeg(id);setEvt(null);setBrief(null);setStep(1);};
+  const selectEvt=e=>{setEvt(e);setStep(3);};
+
+  const generateBrief=async()=>{
+    setBL(true);setBrief(null);setStep(6);
+    const s=SEGMENTS.find(x=>x.id===seg);
+    const prompt=`You are a brand strategist for Monster Energy. Return ONLY valid JSON, no markdown:\n{"headline":"bold 10-word max headline","strategy_statement":"2-3 sentences","events_team":["3-4 items"],"creative_team":["3-4 items"],"partnerships_team":["2-3 items"],"social_team":["3-4 items"],"new_product_needed":false,"product_recommendation":"","success_metrics":["3-5 KPIs"],"estimated_roi_breakdown":"2-3 sentences","retail_lift_projection":"2-3 sentences","risk":"1 sentence"}\nSEGMENT:${s.label}|PRODUCT:${evt.product}(${evt.sku})|EVENT:${evt.name}|MARKET:${evt.event_market}|TRADE:${fmtUSD(evt.trade_spend)}|PIPE:${fmt(evt.pipe_units)}|RETAILERS:${evt.retailer_targets.join(",")}|WHITE SPACE:${sd.whitespace}`;
+    try {
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1200,messages:[{role:"user",content:prompt}]})});
+      const data=await res.json();
+      setBrief(JSON.parse(data.content.map(i=>i.text||"").join("").replace(/```json|```/g,"").trim()));
+    } catch{setBrief({error:true});}
+    setBL(false);
+  };
+
+  const sendChat=async()=>{
+    if(!chatInput.trim()||chatLoading)return;
+    const userMsg=chatInput.trim();setChatInput("");setChatMsgs(m=>[...m,{role:"user",text:userMsg}]);setChatL(true);
+    const ctx=`You are a Monster Energy commercialization expert. Segment:${segObj?.label}|Event:${evt?.name}|Trade:${evt?fmtUSD(evt.trade_spend):"n/a"}|Pipe:${evt?fmt(evt.pipe_units):"n/a"}|ROI:${evt?.est_roi||"n/a"}. Be direct, 3-4 sentences max.`;
+    try {
+      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,system:ctx,messages:[...chatMsgs.filter((_,i)=>i>0).map(m=>({role:m.role,content:m.text})),{role:"user",content:userMsg}]})});
+      const data=await res.json();
+      setChatMsgs(m=>[...m,{role:"assistant",text:data.content.map(i=>i.text||"").join("")}]);
+    } catch{setChatMsgs(m=>[...m,{role:"assistant",text:"Connection error \u2014 please try again."}]);}
+    setChatL(false);
+  };
+
+  const exportCSV=()=>{
+    if(!evt||!segObj)return;
+    const rows=[["Field","Value"],["Segment",segObj.label],["Event",evt.name],["SKU",evt.sku],["Market",evt.event_market],["Trade Spend",fmtUSD(evt.trade_spend)],["Pipeline Units",evt.pipe_units],["Est ROI",evt.est_roi],["Cultural Fit",evt.fit+"%"],...(brief?[["Headline",brief.headline],["Risk",brief.risk]]:[])];
+    const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=`monster-${evt.name.replace(/\s+/g,"-").toLowerCase()}.csv`;a.click();
+  };
+
+  const claw=<svg width="22" height="22" viewBox="0 0 28 28" fill="none"><path d="M8 4 L13 24 L15 16 L20 24 L16 4 Z" fill={M}/></svg>;
+  const postEvt=evt&&seg?getPostEvent(seg,evt.name):null;
+  const tradeScens=evt?TRADE_SCENARIOS(evt.trade_spend):[];
+  const sens=evt?SENSITIVITY(evt.est_roi):null;
+  const guardrails=seg?BRAND_GUARDRAILS[seg]:null;
+  const conflicts=seg?(PROMO_CONFLICTS[seg]||[]):[];
+  const names=seg?(CAMPAIGN_NAMES[seg]||[]):[];
+  function calcStaff(e){if(!e)return 8;const base=e.staff_base||6;const mult=e.scale==="Large"?1.5:e.scale==="Small-Med"?1.0:0.8;return Math.round(base*mult);}
+  const TEAMS=[
+    {id:"events",name:"Events Team",email:"events@monsterenergy.com",color:"#0a1400",bc:"#1a3d10",tc:"#b8e89a",ac:M,tasks:evt?[`Confirm venue/activation footprint for ${evt.name} in ${evt.event_market}`,"Book staffing and brand ambassadors ("+calcStaff(evt)+" people recommended)","Order sampling inventory \u2014 coordinate with supply chain on M-2 shipment","Set up activation build specs with creative team","Brief on-site team on organic engagement protocol"]:[]},
+    {id:"creative",name:"Creative Team",email:"creative@monsterenergy.com",color:"#0d0d1f",bc:"#1c1a4a",tc:"#b3b0f5",ac:"#7F77DD",tasks:evt?[`Design limited-edition ${evt.sku} can artwork \u2014 event theme`,"Produce sell deck for retail buyer meetings","Create shelf talker with QR \u2192 event content","Content matrix: "+CONTENT_MATRIX.formats.slice(0,4).join(", ")+" \u2014 30+ assets total"]:[]},
+    {id:"partnerships",name:"Partnerships",email:"partnerships@monsterenergy.com",color:"#0a1400",bc:"#1a3d10",tc:"#b8e89a",ac:M,tasks:evt?[`Initiate: ${evt.collab}`,"Draft co-creation (not sponsorship) partnership terms","Secure content rights agreement upfront","Set deliverable schedule tied to event timeline"]:[]},
+    {id:"sales",name:"Sales / Trade",email:"sales@monsterenergy.com",color:"#130d00",bc:"#332200",tc:"#f5d5a0",ac:"#EF9F27",tasks:evt?[`Schedule buyer meetings: ${evt.retailer_targets.join(", ")} \u2014 target M-3`,"Present sell deck with cultural strategy + event halo","Lock trade spend: Scenario B Balanced ("+fmtUSD(evt.trade_spend)+" total)","Confirm field execution by M-1"]:[]},
+    {id:"supplychain",name:"Supply Chain",email:"supplychain@monsterenergy.com",color:"#0d0d1f",bc:"#1c1a4a",tc:"#b3b0f5",ac:"#7F77DD",tasks:evt?[`Submit CCNA demand signal: ${fmt(evt.pipe_units)} units of ${evt.sku}`,"Allocate across DCs: West 35% / Central 28% / SE 20% / NE 12% / Reserve 5%","Confirm co-packing slot and label artwork timeline","Set replenishment trigger at +25% velocity threshold"]:[]},
+    {id:"social",name:"Social & Content",email:"social@monsterenergy.com",color:"#1a0a12",bc:"#3d1a2a",tc:"#f4b8d1",ac:"#ED93B1",tasks:evt?["Build content calendar \u2014 first post 6wk pre-event","Identify 5\u20138 creator partners for segment","Set geo-targeted paid social within 10mi of "+evt.event_market+" stores","Schedule post-event UGC amplification (48hr window)"]:[]},
+  ];
+
+  return (
+    <div style={{background:"#000",minHeight:"100vh",fontFamily:"'Arial Black','Arial',sans-serif",color:MTEXT,position:"relative"}}>
+      <div style={{background:"#000",borderBottom:`1px solid ${MBORDER}`,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:6}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>{claw}<div><div style={{fontSize:11,fontWeight:900,color:M,letterSpacing:"0.12em",textTransform:"uppercase"}}>Monster Energy</div><div style={{fontSize:9,color:MSUB,letterSpacing:"0.08em",textTransform:"uppercase"}}>E2E Commercialization Platform</div></div></div>
+        <div style={{display:"flex",gap:4,alignItems:"center",flexWrap:"wrap"}}>
+          {STEPS.map((s,i)=><button key={s} onClick={()=>i<=step&&setStep(i)} style={{padding:"4px 8px",fontSize:9,fontWeight:700,letterSpacing:"0.05em",textTransform:"uppercase",background:i===step?M:"transparent",color:i===step?"#000":i<step?M:"#444",border:`1px solid ${i===step?M:i<step?"#1a3d10":MBORDER}`,borderRadius:3,cursor:i<=step?"pointer":"default"}}>{i<step?"✓ ":""}{s}</button>)}
+          <div style={{width:1,height:18,background:MBORDER,margin:"0 2px"}}/>
+          {evt&&<button onClick={exportCSV} style={{padding:"4px 10px",fontSize:9,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",background:"transparent",color:"#EF9F27",border:"1px solid #332200",borderRadius:3,cursor:"pointer"}}>↓ CSV</button>}
+          {evt&&<button onClick={()=>setActO(true)} style={{padding:"4px 12px",fontSize:9,fontWeight:900,letterSpacing:"0.08em",textTransform:"uppercase",background:M,color:"#000",border:"none",borderRadius:3,cursor:"pointer"}}>⚡ Activate</button>}
+          <button onClick={()=>setChatOpen(o=>!o)} style={{padding:"4px 10px",fontSize:9,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",background:chatOpen?"#0a1400":"transparent",color:chatOpen?M:MSUB,border:`1px solid ${chatOpen?"#1a3d10":MBORDER}`,borderRadius:3,cursor:"pointer"}}>{chatOpen?"✕ Chat":"⬡ Ask AI"}</button>
+        </div>
+      </div>
+      <div style={{display:"flex",height:"calc(100vh - 49px)",overflow:"hidden"}}>
+        <div style={{flex:1,overflowY:"auto",padding:"20px",maxWidth:chatOpen?"none":900,margin:chatOpen?0:"0 auto",width:"100%"}}>
+          {step===0&&(<div><div style={{marginBottom:"1.75rem"}}><div style={{fontSize:24,fontWeight:900,color:"#fff",lineHeight:1.1,marginBottom:8}}>BUILD WITH THE CULTURE.<br/><span style={{color:M}}>NOT AT IT.</span></div><p style={{color:MSUB,fontSize:13,margin:0}}>Select a segment to generate a full end-to-end commercialization plan \u2014 from cultural event to shelf.</p></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:10}}>{SEGMENTS.map(s=><button key={s.id} onClick={()=>selectSeg(s.id)} style={{background:MCARD,border:`1px solid ${MBORDER}`,borderRadius:6,padding:"1rem 1.1rem",textAlign:"left",cursor:"pointer"}} onMouseEnter={e=>e.currentTarget.style.borderColor=M} onMouseLeave={e=>e.currentTarget.style.borderColor=MBORDER}><div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><div style={{fontSize:13,fontWeight:900,color:"#fff"}}>{s.label}</div><span style={{fontSize:9,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",padding:"2px 7px",borderRadius:3,background:s.tagRed?"#1a0a0a":s.tagHi?"#0d1f0a":"#111",color:s.tagRed?"#ff6b6b":s.tagHi?M:MSUB,border:`1px solid ${s.tagRed?"#330f0f":s.tagHi?"#1a3d10":MBORDER}`}}>{s.tag}</span></div><div style={{fontSize:11,color:MSUB}}>Ages {s.age}</div></button>)}</div></div>)}
+          {step===1&&sd&&segObj&&(<div><SH title={segObj.label.toUpperCase()} sub={`Ages ${segObj.age}`}/>{sd.spanish_priority&&<div style={{background:"#130d00",border:"2px solid #EF9F27",borderRadius:6,padding:"0.85rem 1rem",marginBottom:12,display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:16}}>🌎</span><div><div style={{fontSize:10,fontWeight:700,color:"#EF9F27",textTransform:"uppercase",letterSpacing:"0.08em"}}>Spanish-primary market flag</div><div style={{fontSize:12,color:"#f5d5a0"}}>All assets for this segment require Spanish-language versions. Spanish content must be written natively \u2014 not translated. Top markets: LA, Houston, Chicago, Miami.</div></div></div>}<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8,marginBottom:"1.25rem"}}>{[{l:"Segment size",v:sd.size},{l:"Growth signal",v:sd.growth},{l:"Competitor threat",v:sd.competitor_threat}].map(m=><SC key={m.l} l={m.l} v={m.v}/>)}</div><IB color="green" label="White space">{sd.whitespace}</IB><IB color="amber" label="Product signal">{sd.product_signal}</IB><div style={{marginBottom:"1.25rem"}}><Lbl>Cultural pillars</Lbl><div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:6}}>{sd.cultural_pillars.map(p=><Pill key={p}>{p}</Pill>)}</div></div>{guardrails&&<div style={{marginBottom:"1.25rem"}}><button onClick={()=>setGO(o=>!o)} style={{width:"100%",background:guardrailOpen?"#0a1400":MCARD,border:`1px solid ${guardrailOpen?"#1a3d10":MBORDER}`,borderRadius:6,padding:"0.85rem 1rem",textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{fontSize:10,fontWeight:700,color:guardrailOpen?M:MSUB,textTransform:"uppercase",letterSpacing:"0.08em"}}>Brand guardrails for this segment</div><span style={{fontSize:12,color:guardrailOpen?M:MSUB}}>{guardrailOpen?"▲":"▼"}</span></button>{guardrailOpen&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:8}}><div style={{background:"#0a1400",border:`1px solid #1a3d10`,borderRadius:6,padding:"0.9rem 1rem"}}><div style={{fontSize:10,fontWeight:700,color:M,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Must do</div>{guardrails.musts.map((g,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:6}}><span style={{color:M,fontSize:10,flexShrink:0,marginTop:1}}>✓</span><span style={{fontSize:11,color:"#b8e89a",lineHeight:1.6}}>{g}</span></div>)}</div><div style={{background:"#1a0a0a",border:`1px solid #330f0f`,borderRadius:6,padding:"0.9rem 1rem"}}><div style={{fontSize:10,fontWeight:700,color:"#ff6b6b",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Must not do</div>{guardrails.mustnots.map((g,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:6}}><span style={{color:"#ff6b6b",fontSize:10,flexShrink:0,marginTop:1}}>✗</span><span style={{fontSize:11,color:"#f5b8b8",lineHeight:1.6}}>{g}</span></div>)}</div></div>}</div>}<AB onClick={()=>setStep(2)}>View event opportunities →</AB></div>)}
+          {step===2&&sd&&(<div><SH title="Event Opportunities" sub="Ranked by cultural fit"/>{names.length>0&&<div style={{background:MCARD,border:`1px solid ${MBORDER}`,borderRadius:6,padding:"0.9rem 1rem",marginBottom:"1.25rem"}}><div style={{fontSize:10,fontWeight:700,color:M,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>Campaign name options for {segObj.label}</div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8}}>{names.map((n,i)=><div key={i} style={{background:"#0a1400",border:`1px solid #1a3d10`,borderRadius:5,padding:"0.75rem"}}><div style={{fontSize:14,fontWeight:900,color:M,marginBottom:4}}>{n.name}</div><div style={{fontSize:11,color:"#b8e89a",lineHeight:1.5}}>{n.rationale}</div></div>)}</div></div>}{conflicts.length>0&&<div style={{marginBottom:"1.25rem"}}><button onClick={()=>setConfOpen(o=>!o)} style={{width:"100%",background:confOpen?"#130d00":MCARD,border:`1px solid ${confOpen?"#332200":MBORDER}`,borderRadius:6,padding:"0.85rem 1rem",textAlign:"left",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><span style={{fontSize:10,fontWeight:700,color:confOpen?"#EF9F27":MSUB,textTransform:"uppercase",letterSpacing:"0.08em"}}>Promotional calendar conflicts ({conflicts.length} detected)</span>{conflicts.some(c=>c.conflict==="High")&&<span style={{fontSize:9,marginLeft:8,padding:"2px 7px",background:"#1a0a0a",border:"1px solid #330f0f",borderRadius:3,color:"#ff6b6b",fontWeight:700}}>HIGH RISK</span>}</div><span style={{fontSize:12,color:confOpen?"#EF9F27":MSUB}}>{confOpen?"▲":"▼"}</span></button>{confOpen&&<div style={{display:"flex",flexDirection:"column",gap:6,marginTop:8}}>{conflicts.map((c,i)=><div key={i} style={{background:c.conflict==="High"?"#1a0a0a":c.conflict==="Med"?"#130d00":"#0a0a0a",border:`1px solid ${c.conflict==="High"?"#330f0f":c.conflict==="Med"?"#332200":MBORDER}`,borderRadius:5,padding:"0.75rem 1rem",display:"flex",gap:12,alignItems:"flex-start"}}><span style={{fontSize:9,fontWeight:700,padding:"3px 7px",borderRadius:3,background:"transparent",color:c.conflict==="High"?"#ff6b6b":c.conflict==="Med"?"#EF9F27":"#888",border:`1px solid ${c.conflict==="High"?"#330f0f":c.conflict==="Med"?"#332200":MBORDER}`,flexShrink:0,marginTop:2}}>{c.conflict}</span><div><div style={{fontSize:11,fontWeight:700,color:"#fff",marginBottom:2}}>{c.name} <span style={{color:MSUB,fontWeight:400}}>({c.dates})</span></div><div style={{fontSize:11,color:MSUB}}>{c.type} · {c.note}</div></div></div>)}</div>}</div>}<div style={{display:"flex",flexDirection:"column",gap:10}}>{sd.events.map((e,i)=>{const fb=fitBadge(e.fit);const staffCount=calcStaff(e);return(<div key={i} style={{background:MCARD,border:`1px solid ${MBORDER}`,borderRadius:6,padding:"1rem 1.1rem"}} onMouseEnter={el=>el.currentTarget.style.borderColor="#2a2a2a"} onMouseLeave={el=>el.currentTarget.style.borderColor=MBORDER}><div style={{display:"flex",justifyContent:"space-between",gap:12,marginBottom:8}}><div><div style={{fontSize:13,fontWeight:900,color:"#fff",marginBottom:2}}>{e.name}</div><div style={{fontSize:10,color:MSUB}}>{e.type} · {e.scale} · <span style={{color:M}}>{e.product}</span> · {e.event_market}</div></div><div style={{textAlign:"right",flexShrink:0}}><span style={{padding:"3px 9px",borderRadius:3,fontSize:11,fontWeight:900,background:fb.bg,color:fb.text,border:`1px solid ${fb.border}`}}>{e.fit}%</span><div style={{fontSize:10,color:MSUB,marginTop:2}}>ROI {e.est_roi}</div></div></div><div style={{fontSize:12,color:"#aaa",lineHeight:1.7,marginBottom:8}}>{e.organic_play}</div><div style={{display:"flex",gap:12,marginBottom:8,flexWrap:"wrap"}}><span style={{fontSize:10,color:MSUB}}>Trade: <span style={{color:"#EF9F27"}}>{fmtUSD(e.trade_spend)}</span></span><span style={{fontSize:10,color:MSUB}}>Pipe: <span style={{color:M}}>{fmt(e.pipe_units)}</span></span><span style={{fontSize:10,color:MSUB}}>Reach: {e.reach}</span><span style={{fontSize:10,color:MSUB}}>Staff: <span style={{color:"#b3b0f5"}}>{staffCount} people</span></span></div><div style={{marginBottom:10}}><button onClick={()=>setFitOpen(fitOpen===i?null:i)} style={{fontSize:9,fontWeight:700,color:fitOpen===i?M:MSUB,background:"transparent",border:`1px solid ${fitOpen===i?"#1a3d10":MBORDER}`,borderRadius:3,padding:"3px 9px",cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.05em"}}>{fitOpen===i?"▲ Hide fit breakdown":"▼ Why "+e.fit+"% fit?"}</button>{fitOpen===i&&<div style={{background:"#0a1400",border:`1px solid #1a3d10`,borderRadius:5,padding:"0.85rem",marginTop:8}}><div style={{fontSize:11,color:"#b8e89a",lineHeight:1.7,marginBottom:10}}>{e.fit_why}</div>{e.fit_factors.map((ff,j)=><div key={j} style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}><div style={{width:110,fontSize:10,color:MSUB,flexShrink:0}}>{ff.f}</div><div style={{flex:1,height:4,background:"#1a1a1a",borderRadius:2}}><div style={{height:4,width:ff.s+"%",background:M,borderRadius:2}}/></div><div style={{fontSize:11,fontWeight:700,color:M,width:28,textAlign:"right"}}>{ff.s}</div></div>)}</div>}</div><div style={{background:"#0d0d1f",border:`1px solid #1c1a4a`,borderRadius:5,padding:"0.7rem 0.9rem",marginBottom:10}}><div style={{fontSize:9,fontWeight:700,color:"#7F77DD",textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:6}}>Staffing model \u2014 {e.staff_scale}</div><div style={{display:"flex",gap:16,flexWrap:"wrap"}}>{[{r:"Brand Ambassadors",n:Math.max(2,Math.round(staffCount*0.5))},{r:"Event Lead",n:1},{r:"Field Photographer",n:Math.round(staffCount*0.15)||1},{r:"Sampling Staff",n:Math.max(1,Math.round(staffCount*0.3))},{r:"On-site Manager",n:1}].map(s=><div key={s.r}><div style={{fontSize:9,color:"#7F77DD",marginBottom:2}}>{s.r}</div><div style={{fontSize:13,fontWeight:900,color:"#b3b0f5"}}>{s.n}</div></div>)}</div><div style={{fontSize:10,color:"#444",marginTop:6}}>Total recommended: <span style={{color:"#b3b0f5",fontWeight:700}}>{staffCount} people</span></div></div><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}><div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{e.retailer_targets.map(r=><span key={r} style={{fontSize:9,padding:"2px 6px",background:"#111",border:`1px solid ${MBORDER}`,borderRadius:3,color:MSUB}}>{r}</span>)}</div><button onClick={()=>selectEvt(e)} style={{padding:"6px 14px",background:"transparent",color:M,border:`1px solid ${M}`,borderRadius:3,fontSize:10,fontWeight:900,letterSpacing:"0.06em",textTransform:"uppercase",cursor:"pointer",flexShrink:0}}>Build plan →</button></div></div>);})}</div></div>)}
+          {step===3&&evt&&sd&&segObj&&(<div><SH title={evt.name} sub={`${evt.type} · ${segObj.label} · ${evt.event_market}`}/><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginBottom:"1.25rem"}}>{[{l:"Cultural fit",v:evt.fit+"%",hi:true},{l:"Reach",v:evt.reach},{l:"Earned media",v:evt.earned_media},{l:"Est. ROI",v:evt.est_roi,hi:true}].map(m=><SC key={m.l} l={m.l} v={m.v} hi={m.hi}/>)}</div><IB color="green" label="Organic activation play">{evt.organic_play}</IB><IB color="purple" label="Collaboration angle">{evt.collab}</IB><IB color="amber" label="Product & SKU">{evt.product} \u2014 {evt.sku}</IB><div style={{marginBottom:"1.25rem"}}><div style={{fontSize:10,fontWeight:700,color:MSUB,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Account-specific sell-in approach</div><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>{[null,...evt.retailer_targets].map(r=><button key={r||"all"} onClick={()=>setAF(r)} style={{padding:"4px 10px",fontSize:9,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.05em",background:acctFilter===r?M:"transparent",color:acctFilter===r?"#000":MSUB,border:`1px solid ${acctFilter===r?M:MBORDER}`,borderRadius:3,cursor:"pointer"}}>{r||"All accounts"}</button>)}</div>{(acctFilter?[acctFilter]:evt.retailer_targets).map(r=>{const a=ACCOUNT_TEMPLATES[r];if(!a)return null;return(<div key={r} style={{background:MCARD,border:`1px solid ${MBORDER}`,borderRadius:6,padding:"0.9rem 1rem",marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}><div style={{fontSize:12,fontWeight:900,color:"#fff"}}>{r}</div><div style={{display:"flex",gap:6}}><span style={{fontSize:9,padding:"2px 7px",background:"#0d0d1f",color:"#b3b0f5",borderRadius:3,border:"1px solid #1c1a4a"}}>{a.channel}</span><span style={{fontSize:9,padding:"2px 7px",background:a.priority==="Primary"?"#0a1400":"#111",color:a.priority==="Primary"?M:MSUB,borderRadius:3,border:`1px solid ${a.priority==="Primary"?"#1a3d10":MBORDER}`}}>{a.priority}</span></div></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:6,marginBottom:8}}>{[{l:"Facings",v:a.facings},{l:"TPR",v:a.tpr},{l:"Promo window",v:a.promo_window}].map(m=><div key={m.l}><div style={{fontSize:9,color:MSUB,marginBottom:2}}>{m.l}</div><div style={{fontSize:11,fontWeight:700,color:"#fff"}}>{m.v}</div></div>)}</div><div style={{fontSize:11,color:"#aaa",marginBottom:4}}><span style={{color:"#7F77DD"}}>Placement:</span> {a.placement}</div><div style={{fontSize:11,color:"#aaa",marginBottom:4}}><span style={{color:"#7F77DD"}}>Digital:</span> {a.digital}</div><div style={{fontSize:11,color:"#EF9F27",fontStyle:"italic"}}>Buyer note: {a.note}</div></div>);})}</div><AB onClick={()=>setStep(4)}>Supply chain & pipeline →</AB></div>)}
+          {step===4&&evt&&(<div><SH title="Supply Chain & Pipeline" sub="Coca-Cola bottling network (CCNA) · 5-month pipe required"/><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8,marginBottom:"1.5rem"}}>{[{l:"Total pipe units",v:fmt(evt.pipe_units),hi:true},{l:"Pipe window",v:"5 months"},{l:"SKU",v:evt.sku},{l:"Network",v:"CCNA / KO"}].map(m=><SC key={m.l} l={m.l} v={m.v} hi={m.hi}/>)}</div><div style={{marginBottom:"1.5rem"}}><Lbl>Production & distribution timeline \u2014 click a milestone</Lbl><div style={{marginTop:14,position:"relative"}}><div style={{position:"absolute",top:8,left:0,right:0,height:2,background:MBORDER}}/><div style={{display:"flex",overflowX:"auto",paddingBottom:4}}>{PIPE_MONTHS.map((pm,i)=>{const isEvent=pm.mo===0,active=pipeStep===i;return(<div key={i} onClick={()=>setPipeStep(active?null:i)} style={{flex:"0 0 90px",textAlign:"center",cursor:"pointer"}}><div style={{display:"flex",justifyContent:"center",marginBottom:5,position:"relative",zIndex:1}}><div style={{width:16,height:16,borderRadius:"50%",background:isEvent?M:active?M:pm.mo<0?"#1a3d10":pm.mo>0?"#1a1200":"#111",border:`2px solid ${isEvent?M:active?M:pm.mo<0?"#2a5d18":pm.mo>0?"#332200":MBORDER}`}}/></div><div style={{fontSize:9,fontWeight:900,color:isEvent?M:active?M:MSUB,letterSpacing:"0.06em"}}>{pm.label}</div><div style={{fontSize:8,color:isEvent?"#b8e89a":"#555",lineHeight:1.3,marginTop:1}}>{pm.phase}</div></div>);})}</div></div>{pipeStep!==null&&<div style={{background:"#0a1400",border:`1px solid #1a3d10`,borderRadius:6,padding:"0.9rem 1.1rem",marginTop:10}}><div style={{fontSize:10,fontWeight:700,color:M,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>{PIPE_MONTHS[pipeStep].label} \u2014 {PIPE_MONTHS[pipeStep].phase}</div>{PIPE_MONTHS[pipeStep].tasks.map((t,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:5}}><span style={{color:M,fontSize:11,flexShrink:0}}>\u2192</span><span style={{fontSize:12,color:"#b8e89a",lineHeight:1.6}}>{t}</span></div>)}</div>}</div><div style={{background:MCARD,border:`1px solid ${MBORDER}`,borderRadius:6,padding:"1rem 1.1rem",marginBottom:"1.25rem"}}><div style={{fontSize:10,fontWeight:700,color:MSUB,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>CCNA DC allocation</div>{[{dc:"West (LA / Phoenix)",pct:35},{dc:"Central (Dallas / Chicago)",pct:28},{dc:"Southeast (Atlanta / Miami)",pct:20},{dc:"Northeast (NJ / Boston)",pct:12},{dc:"Reserve / Safety Stock",pct:5}].map(r=><div key={r.dc} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,color:"#aaa"}}>{r.dc}</span><span style={{fontSize:11,color:M,fontWeight:700}}>{Math.round(evt.pipe_units*r.pct/100).toLocaleString()} ({r.pct}%)</span></div><div style={{height:4,background:"#1a1a1a",borderRadius:2}}><div style={{height:4,width:r.pct+"%",background:M,borderRadius:2}}/></div></div>)}</div><AB onClick={()=>setStep(5)}>Retail sell-in plan →</AB></div>)}
+          {step===5&&evt&&(<div><SH title="Retail Sell-In Plan" sub={`Trade spend: ${fmtUSD(evt.trade_spend)} · ${evt.retailer_targets.join(", ")}`}/><div style={{marginBottom:"1.5rem"}}><div style={{fontSize:10,fontWeight:700,color:MSUB,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Trade spend scenarios</div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:8,marginBottom:10}}>{tradeScens.map((sc,i)=><button key={i} onClick={()=>setTS(i)} style={{background:tradeScen===i?"#0a1400":MCARD,border:`${tradeScen===i?"2px":"1px"} solid ${tradeScen===i?"#1a3d10":MBORDER}`,borderRadius:6,padding:"0.9rem 1rem",textAlign:"left",cursor:"pointer",position:"relative"}}>{sc.recommended&&<span style={{position:"absolute",top:-1,right:-1,fontSize:8,fontWeight:700,padding:"2px 7px",background:M,color:"#000",borderRadius:"0 5px 0 4px"}}>RECOMMENDED</span>}<div style={{fontSize:11,fontWeight:900,color:tradeScen===i?M:"#fff",marginBottom:4}}>{sc.label}</div><div style={{fontSize:10,color:MSUB,marginBottom:8}}>{sc.focus}</div>{[{l:"TPR",v:sc.tpr},{l:"Display",v:sc.display},{l:"Digital",v:sc.digital},{l:"Scan-down",v:sc.scan}].map(m=><div key={m.l} style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:10,color:MSUB}}>{m.l}</span><span style={{fontSize:10,fontWeight:700,color:"#fff"}}>{fmtUSD(m.v)}</span></div>)}<div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${MBORDER}`,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:10,color:MSUB}}>Est. lift</span><span style={{fontSize:11,fontWeight:900,color:tradeScen===i?M:"#aaa"}}>{sc.est_lift}</span></div><div style={{display:"flex",justifyContent:"space-between"}}><span style={{fontSize:10,color:MSUB}}>Est. ROI</span><span style={{fontSize:11,fontWeight:900,color:tradeScen===i?M:"#aaa"}}>{sc.est_roi}</span></div></button>)}{tradeScen!==null&&<div style={{background:"#0a1400",border:`1px solid #1a3d10`,borderRadius:5,padding:"0.85rem 1rem"}}><div style={{display:"flex",gap:16,flexWrap:"wrap"}}><div><div style={{fontSize:9,color:M,textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Pros</div>{tradeScens[tradeScen].pros.map((p,i)=><div key={i} style={{fontSize:11,color:"#b8e89a",marginBottom:3}}>✓ {p}</div>)}</div><div><div style={{fontSize:9,color:"#ff6b6b",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:4}}>Watch-outs</div>{tradeScens[tradeScen].cons.map((c,i)=><div key={i} style={{fontSize:11,color:"#f5b8b8",marginBottom:3}}>✗ {c}</div>)}</div></div></div>}</div></div><div style={{marginBottom:"1.5rem"}}><div style={{fontSize:10,fontWeight:700,color:MSUB,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Content matrix</div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:10}}><thead><tr><td style={{padding:"6px 8px",background:"#111",color:MSUB,fontWeight:700,textTransform:"uppercase",fontSize:9,letterSpacing:"0.05em",borderBottom:`1px solid ${MBORDER}`}}>Format</td>{CONTENT_MATRIX.messages.slice(0,5).map(m=><td key={m} style={{padding:"6px 8px",background:"#111",color:MSUB,fontWeight:700,textTransform:"uppercase",fontSize:9,letterSpacing:"0.05em",borderBottom:`1px solid ${MBORDER}`}}>{m}</td>)}</tr></thead><tbody>{CONTENT_MATRIX.formats.slice(0,6).map((f,fi)=><tr key={f}><td style={{padding:"6px 8px",color:"#aaa",fontSize:11,borderBottom:`1px solid ${MBORDER}`,background:MCARD}}>{f}</td>{CONTENT_MATRIX.messages.slice(0,5).map((m,mi)=>{const on=(fi+mi)%3!==2;return <td key={m} style={{padding:"6px 8px",textAlign:"center",borderBottom:`1px solid ${MBORDER}`,background:on?"#0a1400":"#0a0a0a"}}>{on&&<span style={{color:M,fontSize:12}}>●</span>}</td>;})}</tr>)}</tbody></table></div><div style={{fontSize:10,color:MSUB,marginTop:6}}>● = planned asset · Total assets planned: <span style={{color:M,fontWeight:700}}>32</span> across {CONTENT_MATRIX.platforms.slice(0,5).join(", ")}</div></div><div style={{background:"#0a1400",border:`1px solid #1a3d10`,borderRadius:6,padding:"1rem 1.1rem",marginBottom:"1.25rem"}}><div style={{fontSize:10,fontWeight:700,color:M,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>Post-event retail uplift projection</div>{[{w:"Event week",lift:"+38%",pct:38,c:M},{w:"Wk +1 to +2",lift:"+24%",pct:24,c:"#b8e89a"},{w:"Wk +3 to +4",lift:"+11%",pct:11,c:"#7acc55"},{w:"Wk +5 to +8",lift:"+5%",pct:5,c:"#4a9933"}].map(r=><div key={r.w} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><div style={{width:80,fontSize:10,color:MSUB,flexShrink:0}}>{r.w}</div><div style={{flex:1,height:5,background:"#1a1a1a",borderRadius:3}}><div style={{height:5,width:r.pct+"%",background:r.c,borderRadius:3}}/></div><div style={{fontSize:11,fontWeight:700,color:r.c,width:36,textAlign:"right"}}>{r.lift}</div></div>)}</div><AB onClick={generateBrief}>Generate full brief & ROI model ↗</AB></div>)}
+          {step===6&&(<div>{briefLoading&&<div style={{textAlign:"center",padding:"4rem 1rem"}}><div style={{width:36,height:36,border:`2px solid #1a1a1a`,borderTopColor:M,borderRadius:"50%",margin:"0 auto 1.5rem",animation:"spin 0.7s linear infinite"}}/><div style={{color:M,fontSize:12,fontWeight:700,letterSpacing:"0.12em",textTransform:"uppercase"}}>Generating activation brief...</div><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>}{brief&&!brief.error&&<div><div style={{background:"#000",border:`1px solid ${M}`,borderRadius:6,padding:"1.25rem",marginBottom:"1.25rem"}}><div style={{fontSize:9,color:M,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:8}}>Activation strategy</div><div style={{fontSize:18,fontWeight:900,color:"#fff",lineHeight:1.2,marginBottom:10}}>{brief.headline}</div><div style={{fontSize:13,color:"#aaa",lineHeight:1.8}}>{brief.strategy_statement}</div></div>{brief.new_product_needed&&brief.product_recommendation&&<IB color="amber" label="⚡ New product signal">{brief.product_recommendation}</IB>}<div style={{marginBottom:"1.25rem"}}><div style={{fontSize:10,fontWeight:700,color:MSUB,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Sensitivity analysis</div><div style={{display:"flex",gap:6,marginBottom:10}}>{[["bear","Bear 🐻"],["base","Base"],["bull","Bull 🐂"]].map(([id,lbl])=><button key={id} onClick={()=>setSensScen(id)} style={{flex:1,padding:"8px",fontSize:10,fontWeight:700,background:sensScen===id?(id==="bull"?M:id==="bear"?"#ff6b6b":"#7F77DD"):"transparent",color:sensScen===id?"#000":(id==="bull"?M:id==="bear"?"#ff6b6b":"#7F77DD"),border:`1px solid ${sensScen===id?(id==="bull"?M:id==="bear"?"#330f0f":"#1c1a4a"):(id==="bull"?"#1a3d10":id==="bear"?"#330f0f":"#1c1a4a")}`,borderRadius:4,cursor:"pointer",textTransform:"uppercase",letterSpacing:"0.06em"}}>{lbl}</button>)}</div>{sens&&(()=>{const sc=sens[sensScen];const tc=sensScen==="bull"?M:sensScen==="bear"?"#ff6b6b":"#b3b0f5";const bg=sensScen==="bull"?"#0a1400":sensScen==="bear"?"#1a0a0a":"#0d0d1f";const bc=sensScen==="bull"?"#1a3d10":sensScen==="bear"?"#330f0f":"#1c1a4a";return(<div style={{background:bg,border:`1px solid ${bc}`,borderRadius:6,padding:"1rem 1.1rem"}}><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:8,marginBottom:10}}>{[{l:"Attendance",v:sc.att},{l:"Social reach",v:sc.social},{l:"Scan lift",v:sc.scan},{l:"Est. ROI",v:sc.roi,bold:true}].map(m=><div key={m.l}><div style={{fontSize:9,color:MSUB,marginBottom:2,textTransform:"uppercase",letterSpacing:"0.05em"}}>{m.l}</div><div style={{fontSize:m.bold?18:13,fontWeight:m.bold?900:700,color:m.bold?tc:"#fff"}}>{m.v}</div></div>)}</div><div style={{fontSize:12,color:tc,lineHeight:1.7}}>{sc.note}</div></div>);})()}</div><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:"1rem"}}>{[["events","Events"],["creative","Creative"],["partnerships","Partnerships"],["social","Social"],["roi","ROI & KPIs"],["retail","Retail lift"],["debrief","Post-event"]].map(([id,lbl])=><button key={id} onClick={()=>{setBriefSec(id);if(id==="debrief")setDO(true);}} style={{padding:"5px 11px",fontSize:9,fontWeight:700,letterSpacing:"0.06em",textTransform:"uppercase",background:briefSec===id?M:"transparent",color:briefSec===id?"#000":id==="debrief"?"#EF9F27":MSUB,border:`1px solid ${briefSec===id?M:id==="debrief"?"#332200":MBORDER}`,borderRadius:3,cursor:"pointer"}}>{id==="debrief"?"★ "+lbl:lbl}</button>)}</div>{briefSec==="events"&&<BS title="Events team" items={brief.events_team} bg="#0a1400" tc="#b8e89a" bc="#1a3d10" ac={M}/>}{briefSec==="creative"&&<BS title="Creative & collateral" items={brief.creative_team} bg="#0d0d1f" tc="#b3b0f5" bc="#1c1a4a" ac="#7F77DD"/>}{briefSec==="partnerships"&&<BS title="Partnerships" items={brief.partnerships_team} bg="#0a1400" tc="#b8e89a" bc="#1a3d10" ac={M}/>}{briefSec==="social"&&<BS title="Social & content" items={brief.social_team} bg="#1a0a12" tc="#f4b8d1" bc="#3d1a2a" ac="#ED93B1"/>}{briefSec==="roi"&&<div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginBottom:"1rem"}}>{[{l:"Trade spend",v:fmtUSD(evt.trade_spend)},{l:"Pipe units",v:fmt(evt.pipe_units)},{l:"Cultural fit",v:evt.fit+"%",hi:true},{l:"Est. ROI",v:evt.est_roi,hi:true}].map(m=><SC key={m.l} l={m.l} v={m.v} hi={m.hi}/>)}</div><div style={{background:MCARD,border:`1px solid ${MBORDER}`,borderRadius:6,padding:"1rem 1.1rem",marginBottom:10}}><div style={{fontSize:10,fontWeight:700,color:MSUB,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>ROI model</div><div style={{fontSize:13,color:"#aaa",lineHeight:1.8}}>{brief.estimated_roi_breakdown}</div></div><div style={{background:MCARD,border:`1px solid ${MBORDER}`,borderRadius:6,padding:"1rem 1.1rem",marginBottom:10}}><div style={{fontSize:10,fontWeight:700,color:MSUB,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Success metrics</div>{brief.success_metrics.map((m,i)=><div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}><span style={{width:17,height:17,borderRadius:"50%",background:"#0a1400",border:`1px solid #1a3d10`,color:M,fontSize:9,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</span><div style={{fontSize:13,color:"#aaa",lineHeight:1.6}}>{m}</div></div>)}</div><IB color="red" label="Key risk">{brief.risk}</IB></div>}{briefSec==="retail"&&<div><IB color="green" label="Retail lift projection">{brief.retail_lift_projection}</IB><div style={{background:MCARD,border:`1px solid ${MBORDER}`,borderRadius:6,padding:"1rem 1.1rem"}}><div style={{fontSize:10,fontWeight:700,color:MSUB,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:10}}>Scan uplift model \u2014 {evt.sku}</div>{[{w:"Wk -2",l:8,c:"#4a9933"},{w:"Wk 0 (event)",l:38,c:M},{w:"Wk +1",l:24,c:"#b8e89a"},{w:"Wk +2",l:16,c:"#7acc55"},{w:"Wk +4",l:9,c:"#4a9933"},{w:"Wk +8",l:5,c:"#2a5d18"}].map(r=><div key={r.w} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><div style={{width:90,fontSize:10,color:MSUB,flexShrink:0}}>{r.w}</div><div style={{flex:1,height:5,background:"#1a1a1a",borderRadius:3}}><div style={{height:5,width:r.l+"%",background:r.c,borderRadius:3}}/></div><div style={{fontSize:11,fontWeight:700,color:r.c,width:32,textAlign:"right"}}>+{r.l}%</div></div>)}<div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${MBORDER}`,fontSize:10,color:MSUB}}>Geo-targeting: 10-mile radius · {evt.event_market} priority stores</div></div></div>}{briefSec==="debrief"&&postEvt&&<div><div style={{background:"#000",border:`1px solid #EF9F27`,borderRadius:6,padding:"1rem 1.25rem",marginBottom:"1.25rem"}}><div style={{fontSize:9,color:"#EF9F27",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:6}}>Post-event debrief \u2014 actual results</div><div style={{fontSize:14,fontWeight:900,color:"#fff",marginBottom:2}}>{postEvt.event}</div><div style={{fontSize:11,color:MSUB}}>{postEvt.market} · {postEvt.sku}</div></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:8,marginBottom:"1.25rem"}}>{[{l:"Attendance",v:postEvt.attendance.toLocaleString(),hi:false},{l:"Social impressions",v:fmt(postEvt.social_impressions),hi:true},{l:"UGC posts",v:postEvt.ugc_posts.toLocaleString(),hi:false},{l:"Earned media value",v:fmtUSD(postEvt.earned_media_value),hi:true},{l:"New buyers",v:postEvt.new_buyers_pct+"%",hi:false},{l:"Repeat rate",v:postEvt.repeat_rate+"%",hi:false},{l:"Event NPS",v:postEvt.nps,hi:true},{l:"Brand health",v:postEvt.brand_health_lift,hi:false}].map(m=><SC key={m.l} l={m.l} v={m.v} hi={m.hi}/>)}</div><div style={{marginBottom:"1.25rem"}}><div style={{fontSize:10,fontWeight:700,color:MSUB,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Actual scan data \u2014 {evt.sku} velocity lift</div>{postEvt.scan_data.map(r=><div key={r.w} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}><div style={{width:80,fontSize:10,color:MSUB,flexShrink:0}}>{r.w}</div><div style={{flex:1,height:5,background:"#1a1a1a",borderRadius:3}}><div style={{height:5,width:r.lift+"%",background:r.w==="Wk 0"?M:"#7acc55",borderRadius:3}}/></div><div style={{fontSize:11,fontWeight:700,color:r.w==="Wk 0"?M:"#7acc55",width:32,textAlign:"right"}}>+{r.lift}%</div></div>)}</div><div style={{marginBottom:"1.25rem"}}><div style={{fontSize:10,fontWeight:700,color:MSUB,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Retailer performance</div><div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}><thead><tr>{["Retailer","Baseline (units/wk)","Event week","Lift"].map(h=><th key={h} style={{padding:"6px 10px",textAlign:"left",fontSize:9,color:MSUB,textTransform:"uppercase",letterSpacing:"0.05em",fontWeight:700,borderBottom:`1px solid ${MBORDER}`,background:"#111"}}>{h}</th>)}</tr></thead><tbody>{postEvt.retailer_perf.map((r,i)=><tr key={i}>{[r.r,r.base.toLocaleString(),r.event.toLocaleString(),<span style={{color:M,fontWeight:700}}>+{r.lift}%</span>].map((v,j)=><td key={j} style={{padding:"7px 10px",borderBottom:`1px solid ${MBORDER}`,color:"#aaa"}}>{v}</td>)}</tr>)}</tbody></table></div></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:"1.25rem"}}><div style={{background:"#0a1400",border:`1px solid #1a3d10`,borderRadius:6,padding:"0.9rem 1rem"}}><div style={{fontSize:10,fontWeight:700,color:M,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:8}}>Key win</div><div style={{fontSize:12,color:"#b8e89a",lineHeight:1.6}}>{postEvt.key_win}</div><div style={{marginTop:8,fontSize:11,color:"#7acc55",fontWeight:700}}>Top content: {postEvt.top_content}</div></div><div style={{background:"#1a0a0a",border:`1px solid #330f0f`,borderRadius:6,padding:"0.9rem 1rem"}}><div style={{fontSize:10,fontWeight:700,color:"#ff6b6b",textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:8}}>Key miss</div><div style={{fontSize:12,color:"#f5b8b8",lineHeight:1.6}}>{postEvt.key_miss}</div></div></div><div style={{background:"#0d0d1f",border:`1px solid #1c1a4a`,borderRadius:6,padding:"0.9rem 1rem"}}><div style={{fontSize:10,fontWeight:700,color:"#7F77DD",textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:6}}>Recommendation for next activation</div><div style={{fontSize:12,color:"#b3b0f5",lineHeight:1.6}}>{postEvt.recommendation}</div></div></div>}<div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:"1.5rem"}}><AB secondary onClick={()=>{setStep(0);setSeg(null);setBrief(null);setEvt(null);}}>New segment</AB><AB secondary onClick={()=>setStep(2)}>Try different event</AB><AB secondary onClick={()=>setStep(4)}>Back to supply chain</AB></div></div>}{brief&&brief.error&&<IB color="red" label="Error">Could not generate brief. Please try again.</IB>}</div>)}
+        </div>
+        {chatOpen&&(<div style={{width:310,borderLeft:`1px solid ${MBORDER}`,display:"flex",flexDirection:"column",background:"#050505",flexShrink:0}}><div style={{padding:"10px 14px",borderBottom:`1px solid ${MBORDER}`,display:"flex",alignItems:"center",gap:8}}><div style={{width:8,height:8,borderRadius:"50%",background:M}}/><div style={{fontSize:10,fontWeight:900,color:M,letterSpacing:"0.1em",textTransform:"uppercase"}}>AI Sales Assistant</div></div><div style={{flex:1,overflowY:"auto",padding:"12px 14px",display:"flex",flexDirection:"column",gap:10}}>{chatMsgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}><div style={{maxWidth:"88%",padding:"8px 11px",borderRadius:6,background:m.role==="user"?"#0a1400":"#111",border:`1px solid ${m.role==="user"?"#1a3d10":MBORDER}`,fontSize:12,color:m.role==="user"?"#b8e89a":"#ccc",lineHeight:1.65}}>{m.text}</div></div>)}{chatLoading&&<div style={{display:"flex",justifyContent:"flex-start"}}><div style={{padding:"8px 11px",borderRadius:6,background:"#111",border:`1px solid ${MBORDER}`}}><div style={{display:"flex",gap:4}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:"#444",animation:`pulse 1s ${i*0.2}s infinite`}}/>)}</div></div></div>}<div ref={chatEndRef}/></div><div style={{padding:"10px 12px",borderTop:`1px solid ${MBORDER}`}}><div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>{["What's the best trade scenario?","How much staff do I need?","FLRT vs Celsius \u2014 how do we win?","What if event attendance is low?"].map(q=><button key={q} onClick={()=>setChatInput(q)} style={{fontSize:9,padding:"3px 8px",background:"#111",border:`1px solid ${MBORDER}`,borderRadius:3,color:MSUB,cursor:"pointer"}}>{q}</button>)}</div><div style={{display:"flex",gap:6}}><input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendChat()} placeholder="Ask anything..." style={{flex:1,background:"#0d0d0d",border:`1px solid ${MBORDER}`,borderRadius:4,padding:"7px 10px",fontSize:12,color:MTEXT,outline:"none",fontFamily:"Arial,sans-serif"}}/><button onClick={sendChat} disabled={chatLoading||!chatInput.trim()} style={{padding:"7px 12px",background:M,color:"#000",border:"none",borderRadius:4,fontSize:11,fontWeight:900,cursor:"pointer",opacity:chatLoading||!chatInput.trim()?0.4:1}}>\u2192</button></div></div></div>)}
+      </div>
+      {activateOpen&&(<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.88)",display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:"3rem",zIndex:100}}><div style={{background:"#0a0a0a",border:`1px solid ${M}`,borderRadius:8,width:"100%",maxWidth:680,maxHeight:"80vh",overflowY:"auto",margin:"0 16px"}}><div style={{padding:"1.25rem 1.5rem",borderBottom:`1px solid ${MBORDER}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}><div><div style={{fontSize:14,fontWeight:900,color:M,letterSpacing:"0.1em",textTransform:"uppercase"}}>⚡ Activate Plan</div><div style={{fontSize:11,color:MSUB,marginTop:2}}>{evt?.name} · {segObj?.label}</div></div><button onClick={()=>{setActO(false);setActS(false);}} style={{background:"transparent",border:"none",color:MSUB,fontSize:18,cursor:"pointer"}}>✕</button></div>{!activateSent?<div style={{padding:"1.25rem 1.5rem"}}><div style={{fontSize:12,color:"#aaa",lineHeight:1.7,marginBottom:"1.25rem"}}>Sending this plan kicks off execution across all teams. Each team receives their task list, timeline, and assets.</div>{TEAMS.map(team=><div key={team.id} style={{background:team.color,border:`1px solid ${team.bc}`,borderRadius:6,padding:"0.9rem 1.1rem",marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}><div style={{fontSize:11,fontWeight:700,color:team.ac,textTransform:"uppercase",letterSpacing:"0.08em"}}>{team.name}</div><span style={{fontSize:9,color:team.ac,opacity:0.7}}>{team.email}</span></div>{team.tasks.slice(0,3).map((t,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:4}}><span style={{color:team.ac,fontSize:9,flexShrink:0,marginTop:2}}>\u2192</span><span style={{fontSize:11,color:team.tc,lineHeight:1.5}}>{t}</span></div>)}</div>)}<button onClick={()=>setActS(true)} style={{width:"100%",padding:"13px",background:M,color:"#000",border:"none",borderRadius:4,fontSize:13,fontWeight:900,letterSpacing:"0.1em",textTransform:"uppercase",cursor:"pointer",marginTop:8}}>⚡ Send to all teams now</button></div>:<div style={{padding:"2.5rem 1.5rem",textAlign:"center"}}><div style={{fontSize:36,marginBottom:16}}>⚡</div><div style={{fontSize:18,fontWeight:900,color:M,marginBottom:8}}>Plan activated.</div><div style={{fontSize:13,color:"#aaa",lineHeight:1.8,marginBottom:"1.5rem"}}>Task briefs sent to all teams.<br/>Kick-off meeting auto-scheduled for next business day.</div><div style={{display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>{TEAMS.map(t=><span key={t.id} style={{fontSize:10,padding:"4px 10px",background:t.color,border:`1px solid ${t.bc}`,borderRadius:3,color:t.ac,fontWeight:700}}>✓ {t.name}</span>)}</div><button onClick={()=>{setActO(false);setActS(false);}} style={{marginTop:"1.5rem",padding:"9px 24px",background:"transparent",color:MSUB,border:`1px solid ${MBORDER}`,borderRadius:4,fontSize:11,fontWeight:700,cursor:"pointer"}}>Close</button></div>}</div></div>)}
+      <style>{`@keyframes pulse{0%,100%{opacity:0.3}50%{opacity:1}}`}</style>
+    </div>
+  );
+}
+'@
+
+Write-File "$root\src\app\page.tsx" $pageContent
+
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Green
+Write-Host " All files written successfully!" -ForegroundColor Green
+Write-Host "========================================" -ForegroundColor Green
+Write-Host ""
+Write-Host "Project folder: $root" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Run these commands:" -ForegroundColor Yellow
+Write-Host "  cd '$root'" -ForegroundColor White
+Write-Host "  npm install" -ForegroundColor White
+Write-Host "  npm run dev" -ForegroundColor White
+Write-Host "  Open http://localhost:3000" -ForegroundColor White
+Write-Host ""
+Write-Host "The app will run immediately with no config needed." -ForegroundColor Green
+Write-Host "Brief generation calls Anthropic directly (demo mode)." -ForegroundColor Green
+Write-Host "See CLAUDE.md and NEXT_ACTIONS.md for context and backlog." -ForegroundColor Cyan
+Write-Host ""

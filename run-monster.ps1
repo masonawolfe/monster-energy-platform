@@ -79,14 +79,22 @@ try {
   # Add password gate (culture123)
   $pg = [System.IO.File]::ReadAllText($pageFile)
   if ($pg -notmatch 'culture123') {
-    $oldFn = 'export default function App() {
-  const [step,setStep]=useState(0);'
-    $newFn = 'export default function App() {
+    # Add hooks at top of component
+    $pg = $pg.Replace(
+      'export default function App() {
+  const [step,setStep]=useState(0);',
+      'export default function App() {
   const [authed,setAuthed]=useState(()=>typeof window!=="undefined"&&localStorage.getItem("m_auth")==="1");
   const [pw,setPw]=useState("");const [pwErr,setPwErr]=useState(false);
-  if(!authed)return(<div style={{background:"#000",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Arial Black,Arial,sans-serif"}}><div style={{width:"100%",maxWidth:360,padding:"2.5rem",border:"1px solid #1f1f1f",borderRadius:8,background:"#0a0a0a"}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:"2rem"}}><svg width="22" height="22" viewBox="0 0 28 28" fill="none"><path d="M8 4 L13 24 L15 16 L20 24 L16 4 Z" fill="#39FF14"/></svg><div><div style={{fontSize:11,fontWeight:900,color:"#39FF14",letterSpacing:"0.12em",textTransform:"uppercase"}}>Monster Energy</div><div style={{fontSize:9,color:"#888",letterSpacing:"0.08em",textTransform:"uppercase"}}>Commercialization Platform</div></div></div><input autoFocus type="password" placeholder="Enter password" value={pw} onChange={e=>{setPw(e.target.value);setPwErr(false);}} onKeyDown={e=>{if(e.key==="Enter"){if(pw==="culture123"){localStorage.setItem("m_auth","1");setAuthed(true);}else setPwErr(true);}}} style={{width:"100%",background:"#111",border:"1px solid "+(pwErr?"#ff4444":"#1f1f1f"),borderRadius:4,padding:"10px 12px",fontSize:13,color:"#e8e8e8",outline:"none",marginBottom:8,boxSizing:"border-box"}}/>{pwErr&&<div style={{fontSize:11,color:"#ff4444",marginBottom:8}}>Incorrect password.</div>}<button onClick={()=>{if(pw==="culture123"){localStorage.setItem("m_auth","1");setAuthed(true);}else setPwErr(true);}} style={{width:"100%",padding:"10px",background:"#39FF14",color:"#000",border:"none",borderRadius:4,fontSize:12,fontWeight:900,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>Enter</button></div></div>);
-  const [step,setStep]=useState(0);'
-    $pg = $pg.Replace($oldFn, $newFn)
+  const [step,setStep]=useState(0);')
+    # Add gate just before the main return (after all hooks)
+    $pg = $pg.Replace(
+      '  return (
+    <div style={{background:"#000",minHeight:"100vh",fontFamily:',
+      '  if(!authed)return(<div style={{background:"#000",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Arial Black,Arial,sans-serif"}}><div style={{width:"100%",maxWidth:360,padding:"2.5rem",border:"1px solid #1f1f1f",borderRadius:8,background:"#0a0a0a"}}><div style={{display:"flex",alignItems:"center",gap:10,marginBottom:"2rem"}}><svg width="22" height="22" viewBox="0 0 28 28" fill="none"><path d="M8 4 L13 24 L15 16 L20 24 L16 4 Z" fill="#39FF14"/></svg><div><div style={{fontSize:11,fontWeight:900,color:"#39FF14",letterSpacing:"0.12em",textTransform:"uppercase"}}>Monster Energy</div><div style={{fontSize:9,color:"#888",letterSpacing:"0.08em",textTransform:"uppercase"}}>Commercialization Platform</div></div></div><input autoFocus type="password" placeholder="Enter password" value={pw} onChange={e=>{setPw(e.target.value);setPwErr(false);}} onKeyDown={e=>{if(e.key==="Enter"){if(pw==="culture123"){localStorage.setItem("m_auth","1");setAuthed(true);}else setPwErr(true);}}} style={{width:"100%",background:"#111",border:"1px solid "+(pwErr?"#ff4444":"#1f1f1f"),borderRadius:4,padding:"10px 12px",fontSize:13,color:"#e8e8e8",outline:"none",marginBottom:8,boxSizing:"border-box"}}/>{pwErr&&<div style={{fontSize:11,color:"#ff4444",marginBottom:8}}>Incorrect password.</div>}<button onClick={()=>{if(pw==="culture123"){localStorage.setItem("m_auth","1");setAuthed(true);}else setPwErr(true);}} style={{width:"100%",padding:"10px",background:"#39FF14",color:"#000",border:"none",borderRadius:4,fontSize:12,fontWeight:900,letterSpacing:"0.08em",textTransform:"uppercase",cursor:"pointer"}}>Enter</button></div></div>);
+
+  return (
+    <div style={{background:"#000",minHeight:"100vh",fontFamily:')
     [System.IO.File]::WriteAllText($pageFile, $pg, [System.Text.UTF8Encoding]::new($false))
     Log "  Password gate added (culture123)." "Gray"
   }

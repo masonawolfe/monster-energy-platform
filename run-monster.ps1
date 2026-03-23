@@ -179,6 +179,7 @@ Log "[5/5] Deploying to Vercel..." "Cyan"
 Log "  A browser tab will open - log in to Vercel, then come back here." "Yellow"
 
 Set-Location $Root
+npx vercel login
 npx vercel --prod
 if ($LASTEXITCODE -eq 0) {
   $vercelUrl = (Get-Content "$Root\.vercel\project.json" -ErrorAction SilentlyContinue | ConvertFrom-Json).projectUrl
